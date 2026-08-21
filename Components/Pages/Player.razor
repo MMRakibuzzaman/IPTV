@@ -1,0 +1,339 @@
+@page "/player/{PlaylistId}"
+@using IPTV.Models
+@using IPTV.Services
+@inject PlaylistStorageService StorageService
+@inject PlayerService PlayerService
+@inject HlsParserService HlsParserService
+@inject NavigationManager Navigation
+@inject IPTV.Services.ExternalIntentService IntentService
+@implements IDisposable
+
+<div class="player-overlay" @onclick="ToggleControls">
+    
+    @if (showControls)
+    {
+        <div class="player-controls-area">
+            <!-- Back Button -->
+            <div style="position: absolute; top: 10px; left: 10px; z-index: 100;">
+                <button class="small-btn" @onclick="GoBack" @onclick:stopPropagation style="background: rgba(0,0,0,0.5); border: none; border-radius: 50%; width: 40px; height: 40px; color: white;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                </button>
+            </div>
+
+            <!-- Sidebar Toggle -->
+            <div class="sidebar-toggle-btn" @onclick="ToggleSidebar" @onclick:stopPropagation>
+                <span style="font-size: 24px; color: white;">≡</span>
+            </div>
+            
+            <!-- Bottom Controls -->
+            <div class="bottom-controls" style="flex-direction: column; align-items: stretch;" @onclick:stopPropagation>
+                
+                <!-- Seek Slider -->
+                <input type="range" class="progress-slider" min="0" max="@(Math.Max(duration.TotalSeconds, currentPosition.TotalSeconds > 0 ? currentPosition.TotalSeconds : 1))" step="1" value="@currentPosition.TotalSeconds" @onchange="OnSeek" />
+
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <div class="control-group">
+                    <!-- Play/Pause Button -->
+                    <button class="small-btn" @onclick="TogglePlayPause" title="Play/Pause" style="margin-right: 10px; width: 40px; height: 40px;">
+                        @if (isPlaying)
+                        {
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                        }
+                        else
+                        {
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                        }
+                    </button>
+                    <!-- Volume Icon -->
+                    <span class="control-icon" style="display: flex; align-items: center;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+                    </span>
+                    <input type="range" class="volume-slider" min="0" max="1" step="0.05" value="@currentVolume" @onchange="OnVolumeChanged" />
+                </div>
+                
+                <div class="control-group" style="margin-left: auto; margin-right: 0; position: relative; gap: 8px;">
+                    <!-- Quality Menu -->
+                    <div style="position: relative; display: flex;">
+                        <button class="small-btn" @onclick="() => { isQualityMenuOpen = !isQualityMenuOpen; ResetHideTimer(); }" title="Quality" style="width: 56px; border-radius: 20px; padding: 0;">
+                            <span style="font-size:12px; font-weight:bold">@(selectedQuality?.Name ?? "HD")</span>
+                        </button>
+                        
+                        @if (isQualityMenuOpen)
+                        {
+                            <div class="quality-menu" @onclick:stopPropagation>
+                                @foreach (var q in availableQualities)
+                                {
+                                    <div class="quality-item @(selectedQuality == q ? "active" : "")" @onclick="() => SelectQuality(q)">
+                                        @q.Name
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Aspect Ratio Icon -->
+                    <button class="small-btn" @onclick="ToggleAspect" title="@currentAspect">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                    </button>
+                    <!-- Rotate Icon -->
+                    <button class="small-btn" @onclick="ToggleOrientation" title="Rotate">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                    </button>
+                </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Sidebar -->
+    <div class="@SidebarClass" @onclick="DoNothing" @onclick:stopPropagation>
+        
+        <div style="padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); font-weight: bold; font-size: 18px;">
+            @(playlist?.Name ?? "Channels")
+        </div>
+
+        <div class="channel-list" style="overflow-y: auto; height: calc(100% - 65px);">
+            @if (playlist != null)
+            {
+                <Microsoft.AspNetCore.Components.Web.Virtualization.Virtualize Items="@playlist.Channels" Context="channel">
+                    <div class="@GetChannelClass(channel)" 
+                         @onclick="() => PlayChannel(channel)">
+                        <div class="channel-name">@channel.Name</div>
+                        @if (!string.IsNullOrEmpty(channel.Group))
+                        {
+                            <div class="channel-group">@channel.Group</div>
+                        }
+                    </div>
+                </Microsoft.AspNetCore.Components.Web.Virtualization.Virtualize>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string PlaylistId { get; set; } = "";
+
+    private Playlist? playlist;
+    private bool isSidebarOpen = false;
+    private string activeChannelId = "";
+    private bool showControls = true;
+    private System.Threading.Timer? hideTimer;
+    private bool isPlaying = true;
+    private TimeSpan currentPosition = TimeSpan.Zero;
+    private TimeSpan duration = TimeSpan.Zero;
+    
+    // Quality States
+    private List<StreamQuality> availableQualities = new();
+    private StreamQuality? selectedQuality;
+    private bool isQualityMenuOpen = false;
+    
+    // Control States
+    private double currentVolume = 1.0;
+    private bool isLandscape = false;
+    private string currentAspect = "AspectFit";
+    private string[] aspects = { "AspectFit", "AspectFill", "Fill" };
+
+    private string SidebarClass => isSidebarOpen ? "channels-sidebar open" : "channels-sidebar";
+    private string GetChannelClass(Channel channel) => activeChannelId == channel.Id ? "channel-item active" : "channel-item";
+    
+    private void DoNothing() { }
+
+    protected override async Task OnInitializedAsync()
+    {
+        PlayerService.OnPlayStateChanged += HandlePlayStateChanged;
+        PlayerService.OnPositionChanged += HandlePositionChanged;
+        PlayerService.OnDurationChanged += HandleDurationChanged;
+        IntentService.OnExternalVideoReceived += HandleNewIntent;
+
+        if (PlaylistId == "external")
+        {
+            var url = IntentService.PendingExternalUrl;
+            if (!string.IsNullOrEmpty(url))
+            {
+                PlayerService.Play(url);
+                IntentService.PendingExternalUrl = null; // Clear it once played
+            }
+        }
+        else
+        {
+            var playlists = StorageService.GetPlaylists();
+            playlist = playlists.FirstOrDefault(p => p.Id == PlaylistId);
+            
+            if (playlist != null && playlist.Channels.Count > 0)
+            {
+                // Auto play first channel
+                await PlayChannel(playlist.Channels[0]);
+            }
+        }
+        ResetHideTimer();
+    }
+
+    private void HandleNewIntent(string url)
+    {
+        if (PlaylistId == "external" && !string.IsNullOrEmpty(url))
+        {
+            InvokeAsync(() =>
+            {
+                PlayerService.Play(url);
+                StateHasChanged();
+            });
+        }
+    }
+
+    private void HandlePlayStateChanged(bool playing)
+    {
+        InvokeAsync(() =>
+        {
+            isPlaying = playing;
+            StateHasChanged();
+        });
+    }
+
+    private void HandlePositionChanged(TimeSpan position)
+    {
+        InvokeAsync(() =>
+        {
+            currentPosition = position;
+            StateHasChanged();
+        });
+    }
+
+    private void HandleDurationChanged(TimeSpan totalDuration)
+    {
+        InvokeAsync(() =>
+        {
+            duration = totalDuration;
+            StateHasChanged();
+        });
+    }
+
+    private void ResetHideTimer()
+    {
+        hideTimer?.Dispose();
+        if (showControls && !isSidebarOpen)
+        {
+            hideTimer = new System.Threading.Timer(_ => 
+            {
+                showControls = false;
+                InvokeAsync(StateHasChanged);
+            }, null, 4000, Timeout.Infinite);
+        }
+    }
+
+    private void ToggleControls()
+    {
+        showControls = !showControls;
+        isQualityMenuOpen = false; // close menu if open
+        if (showControls)
+        {
+            ResetHideTimer();
+        }
+        else
+        {
+            hideTimer?.Dispose();
+            isSidebarOpen = false; // Hide sidebar when hiding controls
+        }
+    }
+
+    private async Task PlayChannel(Channel channel)
+    {
+        activeChannelId = channel.Id;
+        isQualityMenuOpen = false;
+        
+        // Fetch qualities
+        availableQualities = await HlsParserService.GetAvailableQualitiesAsync(channel.StreamUrl);
+        selectedQuality = availableQualities.FirstOrDefault();
+        
+        if (selectedQuality != null)
+        {
+            PlayerService.Play(selectedQuality.Url);
+        }
+        // Automatically close sidebar on selection
+        isSidebarOpen = false;
+        ResetHideTimer();
+        StateHasChanged();
+    }
+
+    private void SelectQuality(StreamQuality quality)
+    {
+        selectedQuality = quality;
+        isQualityMenuOpen = false;
+        PlayerService.Play(quality.Url);
+        ResetHideTimer();
+    }
+
+    private void ToggleSidebar()
+    {
+        isSidebarOpen = !isSidebarOpen;
+        if (isSidebarOpen)
+        {
+            hideTimer?.Dispose(); // Keep controls visible while sidebar is open
+        }
+        else
+        {
+            ResetHideTimer();
+        }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/");
+    }
+
+    public void Dispose()
+    {
+        PlayerService.OnPlayStateChanged -= HandlePlayStateChanged;
+        PlayerService.OnPositionChanged -= HandlePositionChanged;
+        PlayerService.OnDurationChanged -= HandleDurationChanged;
+        IntentService.OnExternalVideoReceived -= HandleNewIntent;
+        // Reset orientation and stop player when leaving this page (e.g., via Android back button)
+        if (isLandscape)
+        {
+            PlayerService.SetOrientation(false);
+        }
+        PlayerService.Stop();
+        hideTimer?.Dispose();
+    }
+
+    private void TogglePlayPause()
+    {
+        PlayerService.TogglePlayPause();
+        ResetHideTimer();
+    }
+
+    private void OnVolumeChanged(ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value?.ToString(), out double vol))
+        {
+            currentVolume = vol;
+            PlayerService.SetVolume(currentVolume);
+        }
+        ResetHideTimer();
+    }
+
+    private void ToggleOrientation()
+    {
+        isLandscape = !isLandscape;
+        PlayerService.SetOrientation(isLandscape);
+        ResetHideTimer();
+    }
+
+    private void ToggleAspect()
+    {
+        var currentIndex = Array.IndexOf(aspects, currentAspect);
+        var nextIndex = (currentIndex + 1) % aspects.Length;
+        currentAspect = aspects[nextIndex];
+        PlayerService.SetAspect(currentAspect);
+        ResetHideTimer();
+    }
+
+    private void OnSeek(ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value?.ToString(), out double seconds))
+        {
+            PlayerService.SetPosition(TimeSpan.FromSeconds(seconds));
+        }
+        ResetHideTimer();
+    }
+}

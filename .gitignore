@@ -1,0 +1,25 @@
+# Build output
+bin/
+obj/
+
+# Visual Studio and IDE metadata
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# NuGet and local tooling caches
+packages/
+*.nupkg
+*.snupkg
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+
+# OS metadata
+.DS_Store
+Thumbs.db

@@ -1,0 +1,31 @@
+@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+@inject IPTV.Services.ExternalIntentService IntentService
+
+@Body
+
+@code {
+    protected override void OnInitialized()
+    {
+        IntentService.OnExternalVideoReceived += HandleExternalVideo;
+        
+        // Handle case where intent arrived before UI loaded
+        if (!string.IsNullOrEmpty(IntentService.PendingExternalUrl))
+        {
+            HandleExternalVideo(IntentService.PendingExternalUrl);
+        }
+    }
+
+    private void HandleExternalVideo(string url)
+    {
+        InvokeAsync(() =>
+        {
+            Navigation.NavigateTo("/player/external");
+        });
+    }
+
+    public void Dispose()
+    {
+        IntentService.OnExternalVideoReceived -= HandleExternalVideo;
+    }
+}

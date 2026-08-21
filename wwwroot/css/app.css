@@ -1,0 +1,287 @@
+:root {
+    --bg-color: #121212;
+    --card-bg: #1e1e1e;
+    --accent-color: #00d2ff;
+    --text-primary: #ffffff;
+    --text-secondary: #b3b3b3;
+    --sidebar-width: 250px;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: transparent !important; /* Let MAUI background show through */
+    color: var(--text-primary);
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+}
+
+#app {
+    height: 100%;
+    width: 100%;
+    background-color: transparent;
+}
+
+.home-container {
+    background-color: var(--bg-color);
+    height: 100%;
+    width: 100%;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.sleek-card {
+    background-color: var(--card-bg);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+.sleek-input {
+    width: 100%;
+    padding: 12px;
+    background-color: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    color: white;
+    margin-bottom: 10px;
+}
+
+.sleek-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+}
+
+.sleek-btn {
+    background-color: rgba(0, 0, 0, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.sleek-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sleek-btn:active {
+    transform: scale(0.95);
+}
+
+.sleek-btn-danger {
+    background: linear-gradient(135deg, #ff416c, #ff4b2b);
+}
+
+/* Player UI styles */
+.player-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: auto; /* Catch clicks to toggle our custom controls */
+    overflow: hidden; /* Prevent sidebar from causing horizontal scroll */
+}
+
+.player-controls-area {
+    pointer-events: auto; /* Catch touches on the sidebar */
+}
+
+.channels-sidebar {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: var(--sidebar-width);
+    height: 100%;
+    background-color: rgba(18, 18, 18, 1.0);
+    border-left: 1px solid rgba(255,255,255,0.1);
+    transform: translateX(100%);
+    display: flex;
+    flex-direction: column;
+    pointer-events: auto; /* Allow clicking and scrolling */
+}
+
+.channels-sidebar.open {
+    transform: translateX(0);
+}
+
+.sidebar-toggle-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background-color: rgba(0,0,0,0.5);
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    border: 1px solid rgba(255,255,255,0.2);
+    z-index: 1000; /* Ensure it stays above the sidebar */
+}
+
+.channel-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.channel-item {
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 5px;
+    cursor: pointer;
+}
+
+.channel-item:hover, .channel-item.active {
+    background-color: rgba(255,255,255,0.1);
+}
+
+.channel-name {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.channel-group {
+    font-size: 11px;
+    color: var(--accent-color);
+}
+
+/* Custom Video Controls Overlay */
+.bottom-controls {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.6);
+    padding: 10px 20px;
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.1);
+    z-index: 900;
+    pointer-events: auto;
+}
+
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-right: auto;
+}
+
+.control-icon {
+    font-size: 20px;
+    color: white;
+}
+
+.small-btn {
+    padding: 8px;
+    border-radius: 50%;
+    min-width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.85);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white;
+    cursor: pointer;
+}
+
+.small-btn:hover {
+    background-color: rgba(255,255,255,0.1);
+}
+
+.small-btn:active {
+}
+
+/* Quality Menu Styles */
+.quality-menu {
+    position: absolute;
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.95);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 8px;
+    padding: 5px 0;
+    min-width: 80px;
+    display: flex;
+    flex-direction: column;
+    z-index: 1000;
+}
+
+.quality-item {
+    padding: 8px 16px;
+    font-size: 12px;
+    color: white;
+    cursor: pointer;
+    text-align: center;
+    transition: background-color 0.2s;
+}
+
+.quality-item:hover {
+    background-color: rgba(255,255,255,0.1);
+}
+
+.quality-item.active {
+    background-color: rgba(255,255,255,0.2);
+    font-weight: bold;
+    color: var(--accent-color);
+}
+
+/* Custom Range Slider */
+.progress-slider {
+    -webkit-appearance: none;
+    width: 100%;
+    margin-bottom: 15px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+}
+
+.progress-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    cursor: pointer;
+}
+.volume-slider {
+    -webkit-appearance: none;
+    width: 70px;
+    margin-right: 15px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    outline: none;
+}
+
+.volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.volume-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}

@@ -1,0 +1,199 @@
+@page "/"
+@using IPTV.Models
+@using IPTV.Services
+@inject PlaylistStorageService StorageService
+@inject M3uParserService ParserService
+@inject NavigationManager Navigation
+@inject PlayerService PlayerService
+
+<div class="home-container">
+    <div class="sleek-card" style="margin-bottom: 40px;">
+        <h3 style="margin-top: 0;">@(string.IsNullOrEmpty(editingPlaylistId) ? "Add New Playlist" : "Edit Playlist")</h3>
+        <input type="text" class="sleek-input" @bind="newPlaylistName" placeholder="Playlist Name" />
+        
+        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <input type="text" class="sleek-input" @bind="newPlaylistContent" placeholder="M3U URL or Local File Path..." style="flex-grow: 1; margin-bottom: 0;" />
+            <button class="sleek-btn" @onclick="PickFile" style="padding: 0 20px; display: flex; align-items: center; justify-content: center;" title="Browse File">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            </button>
+        </div>
+        
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div style="color: #ff4b2b; margin-bottom: 10px;">@errorMessage</div>
+        }
+
+        <div style="display: flex; gap: 10px;">
+            <button class="sleek-btn" style="flex: 1;" @onclick="AddPlaylist">@(string.IsNullOrEmpty(editingPlaylistId) ? "Import Playlist" : "Save Changes")</button>
+            @if (!string.IsNullOrEmpty(editingPlaylistId))
+            {
+                <button class="sleek-btn" style="flex: 1; background: transparent; border: 1px solid rgba(255,255,255,0.2);" @onclick="CancelEdit">Cancel</button>
+            }
+        </div>
+    </div>
+
+    <h2 style="margin-bottom: 20px;">My Playlists</h2>
+
+    @if (playlists.Count == 0)
+    {
+        <div style="color: var(--text-secondary); margin-bottom: 20px;">No playlists found. Add one above.</div>
+    }
+    else
+    {
+        @foreach (var playlist in playlists)
+        {
+            <div class="sleek-card" style="display: flex; justify-content: space-between; align-items: center; padding: 15px; margin-bottom: 15px;">
+                <div>
+                    <h3 style="margin: 0; font-size: 18px;">@playlist.Name</h3>
+                    <div style="font-size: 12px; color: var(--text-secondary);">@playlist.Channels.Count channels</div>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <!-- Play -->
+                    <button class="small-btn" @onclick="() => OpenPlaylist(playlist.Id)" title="Watch">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    </button>
+                    <!-- Edit -->
+                    <button class="small-btn" @onclick="() => EditPlaylist(playlist)" title="Edit">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                    </button>
+                    <!-- Delete -->
+                    <button class="small-btn" style="color: #ff4b2b; border-color: rgba(255, 75, 43, 0.3);" @onclick="() => DeletePlaylist(playlist.Id)" title="Delete">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                    </button>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private List<Playlist> playlists = new();
+    private string newPlaylistName = "";
+    private string newPlaylistContent = "";
+    private string errorMessage = "";
+    private string editingPlaylistId = "";
+
+    protected override void OnInitialized()
+    {
+        PlayerService.Stop(); // Ensure any running video is stopped when going home
+        LoadPlaylists();
+    }
+
+    private void LoadPlaylists()
+    {
+        playlists = StorageService.GetPlaylists();
+    }
+
+    private void EditPlaylist(Playlist playlist)
+    {
+        editingPlaylistId = playlist.Id;
+        newPlaylistName = playlist.Name;
+        newPlaylistContent = playlist.Url == "local" ? "" : playlist.Url; 
+        errorMessage = "";
+    }
+
+    private void CancelEdit()
+    {
+        editingPlaylistId = "";
+        newPlaylistName = "";
+        newPlaylistContent = "";
+        errorMessage = "";
+    }
+
+    private async Task PickFile()
+    {
+        try
+        {
+            var result = await Microsoft.Maui.Storage.FilePicker.Default.PickAsync(new Microsoft.Maui.Storage.PickOptions
+            {
+                PickerTitle = "Select Playlist File"
+            });
+
+            if (result != null)
+            {
+                newPlaylistContent = result.FullPath;
+                if (string.IsNullOrEmpty(newPlaylistName))
+                {
+                    newPlaylistName = result.FileName;
+                }
+            }
+        }
+        catch { }
+    }
+
+    private async Task AddPlaylist()
+    {
+        if (string.IsNullOrWhiteSpace(newPlaylistName))
+        {
+            errorMessage = "Name is required.";
+            return;
+        }
+
+        if (string.IsNullOrEmpty(editingPlaylistId) && string.IsNullOrWhiteSpace(newPlaylistContent))
+        {
+            errorMessage = "Playlist URL or content is required when adding a new playlist.";
+            return;
+        }
+
+        try
+        {
+            errorMessage = "";
+            var playlistToSave = string.IsNullOrEmpty(editingPlaylistId) 
+                ? new Playlist() 
+                : playlists.First(p => p.Id == editingPlaylistId);
+
+            if (!string.IsNullOrWhiteSpace(newPlaylistContent))
+            {
+                string contentToParse = newPlaylistContent;
+                if (newPlaylistContent.StartsWith("http"))
+                {
+                    using var client = new HttpClient();
+                    contentToParse = await client.GetStringAsync(newPlaylistContent);
+                }
+                else if (System.IO.File.Exists(newPlaylistContent))
+                {
+                    contentToParse = await System.IO.File.ReadAllTextAsync(newPlaylistContent);
+                }
+
+                var channels = ParserService.Parse(contentToParse);
+                if (channels.Count == 0)
+                {
+                    errorMessage = "No channels found in the provided content.";
+                    return;
+                }
+                
+                playlistToSave.Channels = channels;
+                playlistToSave.Url = newPlaylistContent.StartsWith("http") ? newPlaylistContent : "local";
+            }
+            
+            playlistToSave.Name = newPlaylistName;
+
+            if (string.IsNullOrEmpty(editingPlaylistId))
+            {
+                playlists.Add(playlistToSave);
+            }
+            
+            StorageService.SavePlaylists(playlists);
+            CancelEdit();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error processing playlist: {ex.Message}";
+        }
+    }
+
+    private void DeletePlaylist(string id)
+    {
+        var pl = playlists.FirstOrDefault(p => p.Id == id);
+        if (pl != null)
+        {
+            playlists.Remove(pl);
+            StorageService.SavePlaylists(playlists);
+        }
+    }
+
+    private void OpenPlaylist(string id)
+    {
+        Navigation.NavigateTo($"/player/{id}");
+    }
+}
