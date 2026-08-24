@@ -2,8 +2,9 @@ name: Build and Release Android APK
 
 on:
   push:
-    tags:
-      - 'v*' # This triggers the workflow ONLY when you push a tag like "v1.0.0"
+    branches:
+      - main
+      - master # Triggers on any push to main or master
 
 jobs:
   build:
@@ -12,6 +13,11 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Generate Timestamp Tag
+        id: generate_tag
+        run: echo "RELEASE_TAG=v$(date +'%Y.%m.%d-%H%M%S')" >> $GITHUB_ENV
+        shell: bash
 
       - name: Setup .NET 8
         uses: actions/setup-dotnet@v4
@@ -32,6 +38,8 @@ jobs:
       - name: Upload APK to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: Release ${{ env.RELEASE_TAG }}
           files: IPTV/bin/Release/net8.0-android/publish/*-Signed.apk
           generate_release_notes: true
         env:
