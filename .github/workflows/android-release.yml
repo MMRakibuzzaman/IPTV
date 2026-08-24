@@ -33,14 +33,14 @@ jobs:
           [System.IO.File]::WriteAllBytes("release.keystore", $keystoreBytes)
         
       - name: Build and Publish APK
-        run: dotnet publish IPTV/IPTV.csproj -f net8.0-android -c Release /p:AndroidPackageFormat=apk /p:AndroidKeyStore=true /p:AndroidSigningKeyStore=${{ github.workspace }}/release.keystore /p:AndroidSigningKeyAlias=${{ secrets.KEY_ALIAS }} /p:AndroidSigningKeyPass=${{ secrets.KEY_PASSWORD }} /p:AndroidSigningStorePass=${{ secrets.KEYSTORE_PASSWORD }}
+        run: dotnet publish IPTV.csproj -f net8.0-android -c Release /p:AndroidPackageFormat=apk /p:AndroidKeyStore=true /p:AndroidSigningKeyStore=${{ github.workspace }}/release.keystore /p:AndroidSigningKeyAlias=${{ secrets.KEY_ALIAS }} /p:AndroidSigningKeyPass=${{ secrets.KEY_PASSWORD }} /p:AndroidSigningStorePass=${{ secrets.KEYSTORE_PASSWORD }}
 
       - name: Upload APK to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           name: Release ${{ env.RELEASE_TAG }}
-          files: IPTV/bin/Release/net8.0-android/publish/*-Signed.apk
+          files: bin/Release/net8.0-android/publish/*-Signed.apk
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
