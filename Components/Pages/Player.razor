@@ -87,22 +87,31 @@
     <!-- Sidebar -->
     <div class="@SidebarClass" @onclick="DoNothing" @onclick:stopPropagation>
         
-        <div style="padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); font-weight: bold; font-size: 18px;">
-            @(playlist?.Name ?? "Channels")
+        <div style="padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+            <div style="font-weight: bold; font-size: 18px; margin-bottom: 10px;">
+                @(playlist?.Name ?? "Channels")
+            </div>
+            <input type="text" class="sleek-input" @bind="SearchQuery" @bind:event="oninput" placeholder="Search channels..." style="width: 100%; margin-bottom: 0; padding: 8px 12px; font-size: 14px;" />
         </div>
 
-        <div class="channel-list" style="overflow-y: auto; height: calc(100% - 65px);">
-            @if (playlist != null)
+        <div class="channel-list" style="overflow-y: auto; height: calc(100% - 110px);">
+            @if (visibleSidebarItems != null && visibleSidebarItems.Count > 0)
             {
-                <Microsoft.AspNetCore.Components.Web.Virtualization.Virtualize Items="@playlist.Channels" Context="channel">
-                    <div class="@GetChannelClass(channel)" 
-                         @onclick="() => PlayChannel(channel)">
-                        <div class="channel-name">@channel.Name</div>
-                        @if (!string.IsNullOrEmpty(channel.Group))
-                        {
-                            <div class="channel-group">@channel.Group</div>
-                        }
-                    </div>
+                <Microsoft.AspNetCore.Components.Web.Virtualization.Virtualize Items="@visibleSidebarItems" Context="item">
+                    @if (item.IsHeader)
+                    {
+                        <div class="group-header" @onclick="() => ToggleGroup(item.Name)" style="padding: 10px 15px; background: rgba(255,255,255,0.05); font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <span>@item.Name</span>
+                            <span style="font-size: 12px; transition: transform 0.2s; transform: @(groupExpandedState.GetValueOrDefault(item.Name) ? "rotate(180deg)" : "rotate(0deg)")">▼</span>
+                        </div>
+                    }
+                    else if (item.Channel != null)
+                    {
+                        <div class="@GetChannelClass(item.Channel)" 
+                             @onclick="() => PlayChannel(item.Channel)">
+                            <div class="channel-name">@item.Channel.Name</div>
+                        </div>
+                    }
                 </Microsoft.AspNetCore.Components.Web.Virtualization.Virtualize>
             }
         </div>
@@ -112,6 +121,13 @@
 @code {
     [Parameter]
     public string PlaylistId { get; set; } = "";
+
+    public class SidebarItem
+    {
+        public bool IsHeader { get; set; }
+        public string Name { get; set; } = "";
+        public Channel? Channel { get; set; }
+    }
 
     private Playlist? playlist;
     private bool isSidebarOpen = false;
@@ -133,6 +149,21 @@
     private string currentAspect = "AspectFit";
     private string[] aspects = { "AspectFit", "AspectFill", "Fill" };
 
+    // Sidebar Search & Grouping States
+    private Dictionary<string, bool> groupExpandedState = new();
+    private List<SidebarItem> visibleSidebarItems = new();
+    private string searchQuery = "";
+    
+    private string SearchQuery
+    {
+        get => searchQuery;
+        set
+        {
+            searchQuery = value;
+            UpdateVisibleItems();
+        }
+    }
+
     private string SidebarClass => isSidebarOpen ? "channels-sidebar open" : "channels-sidebar";
     private string GetChannelClass(Channel channel) => activeChannelId == channel.Id ? "channel-item active" : "channel-item";
     
@@ -149,6 +180,13 @@
         
         if (playlist != null && playlist.Channels.Count > 0)
         {
+            var groups = playlist.Channels.Select(c => string.IsNullOrEmpty(c.Group) ? "Ungrouped" : c.Group).Distinct();
+            foreach (var g in groups)
+            {
+                groupExpandedState[g] = false; // Collapsed by default
+            }
+            UpdateVisibleItems();
+
             // Auto play first channel
             await PlayChannel(playlist.Channels[0]);
         }
@@ -156,6 +194,52 @@
         ResetHideTimer();
     }
 
+    private void UpdateVisibleItems()
+    {
+        if (playlist == null) return;
+
+        visibleSidebarItems.Clear();
+
+        var query = searchQuery?.Trim().ToLowerInvariant() ?? "";
+        bool isSearching = !string.IsNullOrEmpty(query);
+
+        var grouped = playlist.Channels.GroupBy(c => string.IsNullOrEmpty(c.Group) ? "Ungrouped" : c.Group).OrderBy(g => g.Key);
+
+        foreach (var group in grouped)
+        {
+            var matchingChannels = isSearching 
+                ? group.Where(c => c.Name.ToLowerInvariant().Contains(query)).ToList()
+                : group.ToList();
+
+            if (matchingChannels.Count > 0)
+            {
+                visibleSidebarItems.Add(new SidebarItem { IsHeader = true, Name = group.Key });
+
+                bool isExpanded = isSearching || groupExpandedState.GetValueOrDefault(group.Key);
+                
+                if (isExpanded)
+                {
+                    foreach (var channel in matchingChannels)
+                    {
+                        visibleSidebarItems.Add(new SidebarItem { IsHeader = false, Channel = channel });
+                    }
+                }
+            }
+        }
+    }
+
+    private void ToggleGroup(string groupName)
+    {
+        if (groupExpandedState.TryGetValue(groupName, out bool expanded))
+        {
+            groupExpandedState[groupName] = !expanded;
+        }
+        else
+        {
+            groupExpandedState[groupName] = true;
+        }
+        UpdateVisibleItems();
+    }
 
     private void HandlePlayStateChanged(bool playing)
     {
