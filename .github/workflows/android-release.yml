@@ -3,7 +3,8 @@ name: Build and Release Android APK
 on:
   push:
     branches:
-      - master # Triggers on any push to main or master
+      - main
+      - master
 
 permissions:
   contents: write
