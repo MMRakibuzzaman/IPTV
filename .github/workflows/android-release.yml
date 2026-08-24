@@ -1,0 +1,38 @@
+name: Build and Release Android APK
+
+on:
+  push:
+    tags:
+      - 'v*' # This triggers the workflow ONLY when you push a tag like "v1.0.0"
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Install MAUI Workload
+        run: dotnet workload install maui-android
+
+      - name: Decode Keystore
+        run: |
+          $keystoreBytes = [System.Convert]::FromBase64String("${{ secrets.KEYSTORE_BASE64 }}")
+          [System.IO.File]::WriteAllBytes("release.keystore", $keystoreBytes)
+        
+      - name: Build and Publish APK
+        run: dotnet publish IPTV/IPTV.csproj -f net8.0-android -c Release /p:AndroidPackageFormat=apk /p:AndroidKeyStore=true /p:AndroidSigningKeyStore=${{ github.workspace }}/release.keystore /p:AndroidSigningKeyAlias=${{ secrets.KEY_ALIAS }} /p:AndroidSigningKeyPass=${{ secrets.KEY_PASSWORD }} /p:AndroidSigningStorePass=${{ secrets.KEYSTORE_PASSWORD }}
+
+      - name: Upload APK to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: IPTV/bin/Release/net8.0-android/publish/*-Signed.apk
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
