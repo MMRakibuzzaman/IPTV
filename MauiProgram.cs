@@ -25,7 +25,6 @@ namespace IPTV
             builder.Services.AddSingleton<PlaylistStorageService>();
             builder.Services.AddSingleton<PlayerService>();
             builder.Services.AddSingleton<HlsParserService>();
-            builder.Services.AddSingleton<ExternalIntentService>();
             builder.Services.AddSingleton<HttpClient>();
 
 #if DEBUG

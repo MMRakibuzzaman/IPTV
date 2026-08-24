@@ -5,7 +5,6 @@
 @inject PlayerService PlayerService
 @inject HlsParserService HlsParserService
 @inject NavigationManager Navigation
-@inject IPTV.Services.ExternalIntentService IntentService
 @implements IDisposable
 
 <div class="player-overlay" @onclick="ToggleControls">
@@ -144,42 +143,19 @@
         PlayerService.OnPlayStateChanged += HandlePlayStateChanged;
         PlayerService.OnPositionChanged += HandlePositionChanged;
         PlayerService.OnDurationChanged += HandleDurationChanged;
-        IntentService.OnExternalVideoReceived += HandleNewIntent;
 
-        if (PlaylistId == "external")
+        var playlists = StorageService.GetPlaylists();
+        playlist = playlists.FirstOrDefault(p => p.Id == PlaylistId);
+        
+        if (playlist != null && playlist.Channels.Count > 0)
         {
-            var url = IntentService.PendingExternalUrl;
-            if (!string.IsNullOrEmpty(url))
-            {
-                PlayerService.Play(url);
-                IntentService.PendingExternalUrl = null; // Clear it once played
-            }
+            // Auto play first channel
+            await PlayChannel(playlist.Channels[0]);
         }
-        else
-        {
-            var playlists = StorageService.GetPlaylists();
-            playlist = playlists.FirstOrDefault(p => p.Id == PlaylistId);
-            
-            if (playlist != null && playlist.Channels.Count > 0)
-            {
-                // Auto play first channel
-                await PlayChannel(playlist.Channels[0]);
-            }
-        }
+        
         ResetHideTimer();
     }
 
-    private void HandleNewIntent(string url)
-    {
-        if (PlaylistId == "external" && !string.IsNullOrEmpty(url))
-        {
-            InvokeAsync(() =>
-            {
-                PlayerService.Play(url);
-                StateHasChanged();
-            });
-        }
-    }
 
     private void HandlePlayStateChanged(bool playing)
     {
@@ -286,7 +262,6 @@
         PlayerService.OnPlayStateChanged -= HandlePlayStateChanged;
         PlayerService.OnPositionChanged -= HandlePositionChanged;
         PlayerService.OnDurationChanged -= HandleDurationChanged;
-        IntentService.OnExternalVideoReceived -= HandleNewIntent;
         // Reset orientation and stop player when leaving this page (e.g., via Android back button)
         if (isLandscape)
         {
