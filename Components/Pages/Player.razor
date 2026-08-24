@@ -250,13 +250,20 @@
         });
     }
 
+    private TimeSpan lastRenderedPosition = TimeSpan.MinValue;
+
     private void HandlePositionChanged(TimeSpan position)
     {
-        InvokeAsync(() =>
+        // Throttle UI updates to once per second to prevent severe rendering lag
+        if ((position - lastRenderedPosition).Duration().TotalSeconds >= 1.0)
         {
-            currentPosition = position;
-            StateHasChanged();
-        });
+            lastRenderedPosition = position;
+            InvokeAsync(() =>
+            {
+                currentPosition = position;
+                StateHasChanged();
+            });
+        }
     }
 
     private void HandleDurationChanged(TimeSpan totalDuration)

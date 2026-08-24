@@ -10,6 +10,11 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <EnableDefaultCssItems>false</EnableDefaultCssItems>
         <Nullable>enable</Nullable>
+        
+        <!-- Performance Optimizations -->
+        <RunAOTCompilation Condition="'$(Configuration)' == 'Release' and $(TargetFramework.Contains('-android'))">true</RunAOTCompilation>
+        <PublishTrimmed Condition="'$(Configuration)' == 'Release' and $(TargetFramework.Contains('-android'))">true</PublishTrimmed>
+        <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
 
         <!-- Display name -->
         <ApplicationTitle>IPTV</ApplicationTitle>
