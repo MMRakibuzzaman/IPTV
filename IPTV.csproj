@@ -11,10 +11,8 @@
         <EnableDefaultCssItems>false</EnableDefaultCssItems>
         <Nullable>enable</Nullable>
         
-        <!-- Performance Optimizations -->
-        <RunAOTCompilation Condition="'$(Configuration)' == 'Release' and $(TargetFramework.Contains('-android'))">true</RunAOTCompilation>
-        <PublishTrimmed Condition="'$(Configuration)' == 'Release' and $(TargetFramework.Contains('-android'))">true</PublishTrimmed>
         <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+        <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
 
         <!-- Display name -->
         <ApplicationTitle>IPTV</ApplicationTitle>
@@ -54,7 +52,9 @@
         <PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="$(MauiVersion)" />
         <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="$(MauiVersion)" />
         <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
         <PackageReference Include="CommunityToolkit.Maui.MediaElement" Version="4.1.2" />
+        <PackageReference Condition="$(TargetFramework.Contains('-android'))" Include="Xamarin.AndroidX.LocalBroadcastManager" Version="1.1.0.25" />
     </ItemGroup>
 
 </Project>

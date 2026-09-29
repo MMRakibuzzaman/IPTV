@@ -1,15 +1,17 @@
 namespace IPTV.Services;
 
-public class PlayerService
+public class PlayerService : IPlayerService
 {
     public event Action<string>? OnPlayStream;
     public event Action? OnStopStream;
-    
     public event Action<double>? OnSetVolume;
     public event Action<string>? OnSetAspect;
     public event Action<bool>? OnSetOrientation;
     public event Action? OnTogglePlayPause;
-    public event Action<bool>? OnPlayStateChanged; // true = playing, false = paused
+    public event Action<bool>? OnPlayStateChanged;
+    public event Action<TimeSpan>? OnSetPosition;
+    public event Action<TimeSpan>? OnPositionChanged;
+    public event Action<TimeSpan>? OnDurationChanged;
 
     public void Play(string url)
     {
@@ -45,10 +47,6 @@ public class PlayerService
     {
         OnPlayStateChanged?.Invoke(isPlaying);
     }
-
-    public event Action<TimeSpan>? OnSetPosition;
-    public event Action<TimeSpan>? OnPositionChanged;
-    public event Action<TimeSpan>? OnDurationChanged;
 
     public void SetPosition(TimeSpan position)
     {

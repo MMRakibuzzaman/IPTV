@@ -1,70 +1,49 @@
-using IPTV.Services;
 using CommunityToolkit.Maui.Views;
+using IPTV.Services;
 
 namespace IPTV
 {
     public partial class MainPage : ContentPage
     {
-        public MainPage(PlayerService playerService)
+        public MainPage(IPlayerService playerService)
         {
             InitializeComponent();
-            playerService.OnPlayStream += (url) => 
+
+            playerService.OnPlayStream += (url) =>
             {
-                MainThread.BeginInvokeOnMainThread(async () => 
+                MainThread.BeginInvokeOnMainThread(() =>
                 {
-#if ANDROID
-                    if (url.StartsWith("/") || url.StartsWith("file://") || url.StartsWith("content://"))
+                    try
                     {
-                        try
+                        if (string.IsNullOrWhiteSpace(url))
                         {
-                            if (Android.OS.Build.VERSION.SdkInt >= Android.OS.BuildVersionCodes.Tiramisu)
-                            {
-                                if (await Permissions.CheckStatusAsync<Permissions.Media>() != PermissionStatus.Granted)
-                                    await Permissions.RequestAsync<Permissions.Media>();
-                            }
-                            else
-                            {
-                                if (await Permissions.CheckStatusAsync<Permissions.StorageRead>() != PermissionStatus.Granted)
-                                    await Permissions.RequestAsync<Permissions.StorageRead>();
-                            }
+                            return;
                         }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"Error requesting permissions: {ex.Message}");
-                        }
-                    }
-#endif
-                    try 
-                    {
+
                         mediaElement.IsVisible = true;
-                        
-                        if (url.StartsWith("/") || url.StartsWith("file://"))
-                        {
-                            string path = url.StartsWith("file://") ? url.Substring(7) : url;
-                            mediaElement.Source = MediaSource.FromFile(path);
-                        }
-                        else
-                        {
-                            mediaElement.Source = MediaSource.FromUri(url);
-                        }
-                        
+                        mediaElement.Source = MediaSource.FromUri(url);
                         mediaElement.Play();
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Error playing media: {ex.Message}");
+                        System.Diagnostics.Debug.WriteLine($"[MainPage] Error playing media: {ex.Message}");
                     }
-                    await Task.CompletedTask;
                 });
             };
 
-            playerService.OnStopStream += () => 
+            playerService.OnStopStream += () =>
             {
-                MainThread.BeginInvokeOnMainThread(() => 
+                MainThread.BeginInvokeOnMainThread(() =>
                 {
-                    mediaElement.Stop();
-                    mediaElement.Source = null;
-                    mediaElement.IsVisible = false;
+                    try
+                    {
+                        mediaElement.Stop();
+                        mediaElement.IsVisible = false;
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[MainPage] Error stopping media: {ex.Message}");
+                    }
                 });
             };
 
@@ -72,7 +51,14 @@ namespace IPTV
             {
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
-                    mediaElement.Volume = vol;
+                    try
+                    {
+                        mediaElement.Volume = Math.Clamp(vol, 0.0, 1.0);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[MainPage] Error setting volume: {ex.Message}");
+                    }
                 });
             };
 
@@ -80,12 +66,19 @@ namespace IPTV
             {
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
-                    mediaElement.Aspect = aspect switch
+                    try
                     {
-                        "Fill" => Aspect.Fill,
-                        "AspectFill" => Aspect.AspectFill,
-                        _ => Aspect.AspectFit
-                    };
+                        mediaElement.Aspect = aspect switch
+                        {
+                            "Fill" => Aspect.Fill,
+                            "AspectFill" => Aspect.AspectFill,
+                            _ => Aspect.AspectFit
+                        };
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[MainPage] Error setting aspect: {ex.Message}");
+                    }
                 });
             };
 
@@ -93,15 +86,22 @@ namespace IPTV
             {
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
-#if ANDROID
-                    var activity = Microsoft.Maui.ApplicationModel.Platform.CurrentActivity;
-                    if (activity != null)
+                    try
                     {
-                        activity.RequestedOrientation = isLandscape 
-                            ? Android.Content.PM.ScreenOrientation.Landscape 
-                            : Android.Content.PM.ScreenOrientation.Unspecified;
-                    }
+#if ANDROID
+                        var activity = Microsoft.Maui.ApplicationModel.Platform.CurrentActivity;
+                        if (activity != null)
+                        {
+                            activity.RequestedOrientation = isLandscape 
+                                ? Android.Content.PM.ScreenOrientation.Landscape 
+                                : Android.Content.PM.ScreenOrientation.Unspecified;
+                        }
 #endif
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[MainPage] Error setting orientation: {ex.Message}");
+                    }
                 });
             };
 
@@ -109,51 +109,87 @@ namespace IPTV
             {
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
-                    if (mediaElement.CurrentState == CommunityToolkit.Maui.Core.Primitives.MediaElementState.Playing)
+                    try
                     {
-                        mediaElement.Pause();
+                        if (mediaElement.CurrentState == CommunityToolkit.Maui.Core.Primitives.MediaElementState.Playing)
+                        {
+                            mediaElement.Pause();
+                        }
+                        else
+                        {
+                            mediaElement.Play();
+                        }
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        mediaElement.Play();
+                        System.Diagnostics.Debug.WriteLine($"[MainPage] Error toggling play/pause: {ex.Message}");
                     }
                 });
-            };
-
-            mediaElement.StateChanged += (sender, e) =>
-            {
-                bool isPlaying = e.NewState == CommunityToolkit.Maui.Core.Primitives.MediaElementState.Playing || 
-                                 e.NewState == CommunityToolkit.Maui.Core.Primitives.MediaElementState.Buffering;
-                playerService.NotifyPlayState(isPlaying);
-            };
-
-            TimeSpan lastDuration = TimeSpan.Zero;
-            mediaElement.PositionChanged += (sender, e) =>
-            {
-                playerService.NotifyPositionChanged(e.Position);
-                
-                if (mediaElement.Duration > TimeSpan.Zero && mediaElement.Duration != lastDuration)
-                {
-                    lastDuration = mediaElement.Duration;
-                    playerService.NotifyDurationChanged(mediaElement.Duration);
-                }
-            };
-
-            mediaElement.MediaOpened += (sender, e) =>
-            {
-                if (mediaElement.Duration > TimeSpan.Zero)
-                {
-                    lastDuration = mediaElement.Duration;
-                    playerService.NotifyDurationChanged(mediaElement.Duration);
-                }
             };
 
             playerService.OnSetPosition += (position) =>
             {
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
-                    mediaElement.SeekTo(position);
+                    try
+                    {
+                        mediaElement.SeekTo(position);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[MainPage] Error seeking: {ex.Message}");
+                    }
                 });
+            };
+
+            mediaElement.StateChanged += (sender, e) =>
+            {
+                try
+                {
+                    bool isPlaying = e.NewState == CommunityToolkit.Maui.Core.Primitives.MediaElementState.Playing || 
+                                     e.NewState == CommunityToolkit.Maui.Core.Primitives.MediaElementState.Buffering;
+                    playerService.NotifyPlayState(isPlaying);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainPage] StateChanged error: {ex.Message}");
+                }
+            };
+
+            TimeSpan lastDuration = TimeSpan.Zero;
+
+            mediaElement.PositionChanged += (sender, e) =>
+            {
+                try
+                {
+                    playerService.NotifyPositionChanged(e.Position);
+
+                    if (mediaElement.Duration > TimeSpan.Zero && mediaElement.Duration != lastDuration)
+                    {
+                        lastDuration = mediaElement.Duration;
+                        playerService.NotifyDurationChanged(mediaElement.Duration);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainPage] PositionChanged error: {ex.Message}");
+                }
+            };
+
+            mediaElement.MediaOpened += (sender, e) =>
+            {
+                try
+                {
+                    if (mediaElement.Duration > TimeSpan.Zero)
+                    {
+                        lastDuration = mediaElement.Duration;
+                        playerService.NotifyDurationChanged(mediaElement.Duration);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainPage] MediaOpened error: {ex.Message}");
+                }
             };
         }
     }

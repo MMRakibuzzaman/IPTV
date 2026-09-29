@@ -23,3 +23,7 @@ packages/
 # OS metadata
 .DS_Store
 Thumbs.db
+
+# Signing keystores
+*.keystore
+*.jks

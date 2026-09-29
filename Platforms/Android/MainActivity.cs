@@ -1,29 +1,50 @@
 using Android.App;
-using Android.Content;
 using Android.Content.PM;
 using Android.OS;
 using AndroidX.Core.View;
-using IPTV.Services;
 
 namespace IPTV
 {
-    [Activity(Theme = "@style/Maui.SplashTheme", MainLauncher = true, ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation | ConfigChanges.UiMode | ConfigChanges.ScreenLayout | ConfigChanges.SmallestScreenSize | ConfigChanges.Density)]
+    [Activity(
+        Theme = "@style/Maui.SplashTheme", 
+        MainLauncher = true, 
+        ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation | ConfigChanges.UiMode | ConfigChanges.ScreenLayout | ConfigChanges.SmallestScreenSize | ConfigChanges.Density)]
     public class MainActivity : MauiAppCompatActivity
     {
         protected override void OnCreate(Bundle? savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
+            ApplyImmersiveMode();
+        }
 
-            if (Window != null)
+        public override void OnWindowFocusChanged(bool hasFocus)
+        {
+            base.OnWindowFocusChanged(hasFocus);
+            if (hasFocus)
             {
-                WindowCompat.SetDecorFitsSystemWindows(Window, false);
-                var controller = WindowCompat.GetInsetsController(Window, Window.DecorView);
-                if (controller != null)
+                ApplyImmersiveMode();
+            }
+        }
+
+        private void ApplyImmersiveMode()
+        {
+            try
+            {
+                if (Window != null && Window.DecorView != null)
                 {
-                    // Hide both status and navigation bars for true immersive mode
-                    controller.Hide(WindowInsetsCompat.Type.SystemBars());
-                    controller.SystemBarsBehavior = WindowInsetsControllerCompat.BehaviorShowTransientBarsBySwipe;
+                    WindowCompat.SetDecorFitsSystemWindows(Window, false);
+                    var controller = WindowCompat.GetInsetsController(Window, Window.DecorView);
+                    if (controller != null)
+                    {
+                        controller.Hide(WindowInsetsCompat.Type.SystemBars());
+                        controller.SystemBarsBehavior = WindowInsetsControllerCompat.BehaviorShowTransientBarsBySwipe;
+                    }
                 }
+            }
+            catch (System.Exception ex)
+            {
+                // Ensure system bars/window insets configuration never causes startup crash
+                System.Diagnostics.Debug.WriteLine($"[MainActivity] Immersive mode configuration skipped: {ex.Message}");
             }
         }
     }

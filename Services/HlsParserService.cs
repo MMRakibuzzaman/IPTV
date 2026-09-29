@@ -1,98 +1,110 @@
 using System.Text.RegularExpressions;
+using IPTV.Models;
 
 namespace IPTV.Services;
 
-public class StreamQuality
-{
-    public string Name { get; set; } = "Auto";
-    public string Url { get; set; } = "";
-    public int Bandwidth { get; set; }
-}
-
-public class HlsParserService
+public class HlsParserService : IHlsParserService
 {
     private readonly HttpClient _httpClient;
+    private static readonly Regex ResolutionRegex = new(@"RESOLUTION=(\d+x\d+)", RegexOptions.Compiled);
+    private static readonly Regex BandwidthRegex = new(@"BANDWIDTH=(\d+)", RegexOptions.Compiled);
 
     public HlsParserService(HttpClient httpClient)
     {
         _httpClient = httpClient;
         if (!_httpClient.DefaultRequestHeaders.Contains("User-Agent"))
         {
-            _httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
+            _httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
         }
     }
 
     public async Task<List<StreamQuality>> GetAvailableQualitiesAsync(string masterUrl)
     {
-        var qualities = new List<StreamQuality>();
-        // Auto is always an option, pointing to the master playlist
-        qualities.Add(new StreamQuality { Name = "Auto", Url = masterUrl, Bandwidth = int.MaxValue });
+        var qualities = new List<StreamQuality>
+        {
+            new() { Name = "Auto", Url = masterUrl, Bandwidth = int.MaxValue }
+        };
+
+        if (string.IsNullOrWhiteSpace(masterUrl) || !masterUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+        {
+            return qualities;
+        }
 
         try
         {
-            if (string.IsNullOrWhiteSpace(masterUrl) || !masterUrl.StartsWith("http"))
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            var response = await _httpClient.GetAsync(masterUrl, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+            if (!response.IsSuccessStatusCode)
+            {
                 return qualities;
+            }
 
-            var content = await _httpClient.GetStringAsync(masterUrl);
+            var content = await response.Content.ReadAsStringAsync(cts.Token);
+            if (string.IsNullOrWhiteSpace(content) || !content.Contains("#EXTM3U"))
+            {
+                return qualities;
+            }
+
             var lines = content.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
-            // Simple base URL extraction for relative paths
             var baseUrl = masterUrl;
             var queryIndex = baseUrl.IndexOf('?');
-            if (queryIndex > -1) baseUrl = baseUrl.Substring(0, queryIndex);
+            if (queryIndex > -1)
+            {
+                baseUrl = baseUrl.Substring(0, queryIndex);
+            }
             baseUrl = baseUrl.Substring(0, baseUrl.LastIndexOf('/') + 1);
 
             for (int i = 0; i < lines.Length; i++)
             {
-                if (lines[i].StartsWith("#EXT-X-STREAM-INF:"))
+                var line = lines[i].Trim();
+                if (line.StartsWith("#EXT-X-STREAM-INF:", StringComparison.OrdinalIgnoreCase))
                 {
-                    var infoLine = lines[i];
-                    var nextLine = (i + 1 < lines.Length) ? lines[i + 1] : "";
+                    var nextLine = (i + 1 < lines.Length) ? lines[i + 1].Trim() : string.Empty;
 
-                    if (!string.IsNullOrWhiteSpace(nextLine) && !nextLine.StartsWith("#"))
+                    if (!string.IsNullOrWhiteSpace(nextLine) && !nextLine.StartsWith('#'))
                     {
-                        var resolutionMatch = Regex.Match(infoLine, @"RESOLUTION=(\d+x\d+)");
-                        var bandwidthMatch = Regex.Match(infoLine, @"BANDWIDTH=(\d+)");
-                        
+                        var resolutionMatch = ResolutionRegex.Match(line);
+                        var bandwidthMatch = BandwidthRegex.Match(line);
+
                         var resolution = resolutionMatch.Success ? resolutionMatch.Groups[1].Value : "Unknown";
                         var bandwidth = bandwidthMatch.Success && int.TryParse(bandwidthMatch.Groups[1].Value, out var bw) ? bw : 0;
 
-                        // Ensure absolute URL
-                        var streamUrl = nextLine.StartsWith("http") ? nextLine : new Uri(new Uri(baseUrl), nextLine).ToString();
+                        var streamUrl = nextLine.StartsWith("http", StringComparison.OrdinalIgnoreCase) 
+                            ? nextLine 
+                            : new Uri(new Uri(baseUrl), nextLine).ToString();
 
                         if (resolution != "Unknown" || bandwidth > 0)
                         {
                             var name = resolution != "Unknown" ? resolution.Split('x').Last() + "p" : $"{bandwidth / 1000}k";
-                            qualities.Add(new StreamQuality 
-                            { 
-                                Name = name, 
-                                Url = streamUrl, 
-                                Bandwidth = bandwidth 
+                            qualities.Add(new StreamQuality
+                            {
+                                Name = name,
+                                Url = streamUrl,
+                                Bandwidth = bandwidth
                             });
                         }
                     }
                 }
             }
-            
-            // Sort by bandwidth descending
+
             var auto = qualities.First();
             var sorted = qualities.Skip(1).OrderByDescending(q => q.Bandwidth).ToList();
-            qualities = new List<StreamQuality> { auto };
-            
-            // Deduplicate names (sometimes multiple streams have same resolution)
+            var result = new List<StreamQuality> { auto };
+
             foreach (var q in sorted)
             {
-                if (!qualities.Any(existing => existing.Name == q.Name))
+                if (!result.Any(existing => existing.Name == q.Name))
                 {
-                    qualities.Add(q);
+                    result.Add(q);
                 }
             }
 
-            return qualities;
+            return result;
         }
-        catch
+        catch (Exception ex)
         {
-            // If it fails (network error, not an m3u8), just return Auto
+            System.Diagnostics.Debug.WriteLine($"[HlsParserService] Error parsing HLS qualities: {ex.Message}");
             return qualities;
         }
     }

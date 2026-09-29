@@ -1,4 +1,5 @@
 using CommunityToolkit.Maui;
+using IPTV.Repositories;
 using IPTV.Services;
 using Microsoft.Extensions.Logging;
 
@@ -19,17 +20,19 @@ namespace IPTV
 
             builder.Services.AddMauiBlazorWebView();
 
-            // Register our services
+            // HTTP Client
+            builder.Services.AddHttpClient();
+
+            // Register repositories and application services
             builder.Services.AddSingleton<MainPage>();
-            builder.Services.AddSingleton<M3uParserService>();
-            builder.Services.AddSingleton<PlaylistStorageService>();
-            builder.Services.AddSingleton<PlayerService>();
-            builder.Services.AddSingleton<HlsParserService>();
-            builder.Services.AddSingleton<HttpClient>();
+            builder.Services.AddSingleton<IPlaylistRepository, PlaylistRepository>();
+            builder.Services.AddSingleton<IM3uParserService, M3uParserService>();
+            builder.Services.AddSingleton<IHlsParserService, HlsParserService>();
+            builder.Services.AddSingleton<IPlayerService, PlayerService>();
 
 #if DEBUG
-    		builder.Services.AddBlazorWebViewDeveloperTools();
-    		builder.Logging.AddDebug();
+            builder.Services.AddBlazorWebViewDeveloperTools();
+            builder.Logging.AddDebug();
 #endif
 
             return builder.Build();

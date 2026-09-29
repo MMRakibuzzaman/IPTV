@@ -1,9 +1,10 @@
 @page "/player/{PlaylistId}"
 @using IPTV.Models
+@using IPTV.Repositories
 @using IPTV.Services
-@inject PlaylistStorageService StorageService
-@inject PlayerService PlayerService
-@inject HlsParserService HlsParserService
+@inject IPlaylistRepository PlaylistRepository
+@inject IPlayerService PlayerService
+@inject IHlsParserService HlsParserService
 @inject NavigationManager Navigation
 @implements IDisposable
 
@@ -27,58 +28,61 @@
             <!-- Bottom Controls -->
             <div class="bottom-controls" style="flex-direction: column; align-items: stretch;" @onclick:stopPropagation>
                 
-                <!-- Seek Slider -->
-                <input type="range" class="progress-slider" min="0" max="@(Math.Max(duration.TotalSeconds, currentPosition.TotalSeconds > 0 ? currentPosition.TotalSeconds : 1))" step="1" value="@currentPosition.TotalSeconds" @onchange="OnSeek" />
+                <!-- Seek Slider (only for streams with known duration, not infinite live streams) -->
+                @if (duration > TimeSpan.Zero)
+                {
+                    <input type="range" class="progress-slider" min="0" max="@duration.TotalSeconds" step="1" value="@currentPosition.TotalSeconds" @onchange="OnSeek" />
+                }
 
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                     <div class="control-group">
-                    <!-- Play/Pause Button -->
-                    <button class="small-btn" @onclick="TogglePlayPause" title="Play/Pause" style="margin-right: 10px; width: 40px; height: 40px;">
-                        @if (isPlaying)
-                        {
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
-                        }
-                        else
-                        {
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                        }
-                    </button>
-                    <!-- Volume Icon -->
-                    <span class="control-icon" style="display: flex; align-items: center;">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
-                    </span>
-                    <input type="range" class="volume-slider" min="0" max="1" step="0.05" value="@currentVolume" @onchange="OnVolumeChanged" />
-                </div>
-                
-                <div class="control-group" style="margin-left: auto; margin-right: 0; position: relative; gap: 8px;">
-                    <!-- Quality Menu -->
-                    <div style="position: relative; display: flex;">
-                        <button class="small-btn" @onclick="() => { isQualityMenuOpen = !isQualityMenuOpen; ResetHideTimer(); }" title="Quality" style="width: 56px; border-radius: 20px; padding: 0;">
-                            <span style="font-size:12px; font-weight:bold">@(selectedQuality?.Name ?? "HD")</span>
+                        <!-- Play/Pause Button -->
+                        <button class="small-btn" @onclick="TogglePlayPause" title="Play/Pause" style="margin-right: 10px; width: 40px; height: 40px;">
+                            @if (isPlaying)
+                            {
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                            }
+                            else
+                            {
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                            }
                         </button>
-                        
-                        @if (isQualityMenuOpen)
-                        {
-                            <div class="quality-menu" @onclick:stopPropagation>
-                                @foreach (var q in availableQualities)
-                                {
-                                    <div class="quality-item @(selectedQuality == q ? "active" : "")" @onclick="() => SelectQuality(q)">
-                                        @q.Name
-                                    </div>
-                                }
-                            </div>
-                        }
+                        <!-- Volume Icon -->
+                        <span class="control-icon" style="display: flex; align-items: center;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+                        </span>
+                        <input type="range" class="volume-slider" min="0" max="1" step="0.05" value="@currentVolume" @onchange="OnVolumeChanged" />
                     </div>
+                
+                    <div class="control-group" style="margin-left: auto; margin-right: 0; position: relative; gap: 8px;">
+                        <!-- Quality Menu -->
+                        <div style="position: relative; display: flex;">
+                            <button class="small-btn" @onclick="() => { isQualityMenuOpen = !isQualityMenuOpen; ResetHideTimer(); }" title="Quality" style="width: 56px; border-radius: 20px; padding: 0;">
+                                <span style="font-size:12px; font-weight:bold">@(selectedQuality?.Name ?? "HD")</span>
+                            </button>
+                            
+                            @if (isQualityMenuOpen)
+                            {
+                                <div class="quality-menu" @onclick:stopPropagation>
+                                    @foreach (var q in availableQualities)
+                                    {
+                                        <div class="quality-item @(selectedQuality == q ? "active" : "")" @onclick="() => SelectQuality(q)">
+                                            @q.Name
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
 
-                    <!-- Aspect Ratio Icon -->
-                    <button class="small-btn" @onclick="ToggleAspect" title="@currentAspect">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-                    </button>
-                    <!-- Rotate Icon -->
-                    <button class="small-btn" @onclick="ToggleOrientation" title="Rotate">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-                    </button>
-                </div>
+                        <!-- Aspect Ratio Icon -->
+                        <button class="small-btn" @onclick="ToggleAspect" title="@currentAspect">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                        </button>
+                        <!-- Rotate Icon -->
+                        <button class="small-btn" @onclick="ToggleOrientation" title="Rotate">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -147,11 +151,11 @@
     private double currentVolume = 1.0;
     private bool isLandscape = false;
     private string currentAspect = "AspectFit";
-    private string[] aspects = { "AspectFit", "AspectFill", "Fill" };
+    private readonly string[] aspects = { "AspectFit", "AspectFill", "Fill" };
 
     // Sidebar Search & Grouping States
-    private Dictionary<string, bool> groupExpandedState = new();
-    private List<SidebarItem> visibleSidebarItems = new();
+    private readonly Dictionary<string, bool> groupExpandedState = new();
+    private readonly List<SidebarItem> visibleSidebarItems = new();
     private string searchQuery = "";
     
     private string SearchQuery
@@ -175,20 +179,28 @@
         PlayerService.OnPositionChanged += HandlePositionChanged;
         PlayerService.OnDurationChanged += HandleDurationChanged;
 
-        var playlists = StorageService.GetPlaylists();
-        playlist = playlists.FirstOrDefault(p => p.Id == PlaylistId);
+        playlist = await PlaylistRepository.GetByIdAsync(PlaylistId);
         
         if (playlist != null && playlist.Channels.Count > 0)
         {
-            var groups = playlist.Channels.Select(c => string.IsNullOrEmpty(c.Group) ? "Ungrouped" : c.Group).Distinct();
+            var groups = playlist.Channels
+                .Select(c => string.IsNullOrEmpty(c.Group) ? "Ungrouped" : c.Group)
+                .Distinct();
+
             foreach (var g in groups)
             {
                 groupExpandedState[g] = false; // Collapsed by default
             }
             UpdateVisibleItems();
 
-            // Auto play first channel
+            // Auto-play the first channel
             await PlayChannel(playlist.Channels[0]);
+        }
+        else
+        {
+            // Playlist not found or empty
+            Navigation.NavigateTo("/");
+            return;
         }
         
         ResetHideTimer();
@@ -200,10 +212,12 @@
 
         visibleSidebarItems.Clear();
 
-        var query = searchQuery?.Trim().ToLowerInvariant() ?? "";
+        var query = searchQuery.Trim().ToLowerInvariant();
         bool isSearching = !string.IsNullOrEmpty(query);
 
-        var grouped = playlist.Channels.GroupBy(c => string.IsNullOrEmpty(c.Group) ? "Ungrouped" : c.Group).OrderBy(g => g.Key);
+        var grouped = playlist.Channels
+            .GroupBy(c => string.IsNullOrEmpty(c.Group) ? "Ungrouped" : c.Group)
+            .OrderBy(g => g.Key);
 
         foreach (var group in grouped)
         {
@@ -254,7 +268,7 @@
 
     private void HandlePositionChanged(TimeSpan position)
     {
-        // Throttle UI updates to once per second to prevent severe rendering lag
+        // Throttle UI updates to once per second to prevent unnecessary re-renders
         if ((position - lastRenderedPosition).Duration().TotalSeconds >= 1.0)
         {
             lastRenderedPosition = position;
@@ -291,7 +305,7 @@
     private void ToggleControls()
     {
         showControls = !showControls;
-        isQualityMenuOpen = false; // close menu if open
+        isQualityMenuOpen = false;
         if (showControls)
         {
             ResetHideTimer();
@@ -299,7 +313,7 @@
         else
         {
             hideTimer?.Dispose();
-            isSidebarOpen = false; // Hide sidebar when hiding controls
+            isSidebarOpen = false;
         }
     }
 
@@ -308,15 +322,16 @@
         activeChannelId = channel.Id;
         isQualityMenuOpen = false;
         
-        // Fetch qualities
+        // Fetch stream qualities if available
         availableQualities = await HlsParserService.GetAvailableQualitiesAsync(channel.StreamUrl);
         selectedQuality = availableQualities.FirstOrDefault();
         
-        if (selectedQuality != null)
+        var streamToPlay = selectedQuality?.Url ?? channel.StreamUrl;
+        if (!string.IsNullOrWhiteSpace(streamToPlay))
         {
-            PlayerService.Play(selectedQuality.Url);
+            PlayerService.Play(streamToPlay);
         }
-        // Automatically close sidebar on selection
+
         isSidebarOpen = false;
         ResetHideTimer();
         StateHasChanged();
@@ -335,7 +350,7 @@
         isSidebarOpen = !isSidebarOpen;
         if (isSidebarOpen)
         {
-            hideTimer?.Dispose(); // Keep controls visible while sidebar is open
+            hideTimer?.Dispose();
         }
         else
         {
@@ -353,7 +368,7 @@
         PlayerService.OnPlayStateChanged -= HandlePlayStateChanged;
         PlayerService.OnPositionChanged -= HandlePositionChanged;
         PlayerService.OnDurationChanged -= HandleDurationChanged;
-        // Reset orientation and stop player when leaving this page (e.g., via Android back button)
+
         if (isLandscape)
         {
             PlayerService.SetOrientation(false);

@@ -1,19 +1,20 @@
 @page "/"
 @using IPTV.Models
+@using IPTV.Repositories
 @using IPTV.Services
-@inject PlaylistStorageService StorageService
-@inject M3uParserService ParserService
+@inject IPlaylistRepository PlaylistRepository
+@inject IM3uParserService ParserService
 @inject NavigationManager Navigation
-@inject PlayerService PlayerService
+@inject IPlayerService PlayerService
 
 <div class="home-container">
     <div class="sleek-card" style="margin-bottom: 40px;">
         <h3 style="margin-top: 0;">@(string.IsNullOrEmpty(editingPlaylistId) ? "Add New Playlist" : "Edit Playlist")</h3>
-        <input type="text" class="sleek-input" @bind="newPlaylistName" placeholder="Playlist Name" />
+        <input type="text" class="sleek-input" @bind="newPlaylistName" placeholder="Playlist Name (e.g. Sports, News)" />
         
-        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-            <input type="text" class="sleek-input" @bind="newPlaylistContent" placeholder="M3U URL or Local File Path..." style="flex-grow: 1; margin-bottom: 0;" />
-            <button class="sleek-btn" @onclick="PickFile" style="padding: 0 20px; display: flex; align-items: center; justify-content: center;" title="Browse File">
+        <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: stretch;">
+            <input type="text" class="sleek-input" @bind="newPlaylistContent" placeholder="M3U / M3U8 URL or browse local playlist file..." style="flex: 1; min-width: 0; margin-bottom: 0;" />
+            <button class="sleek-btn" @onclick="PickFile" style="padding: 0 16px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; height: 46px;" title="Browse File">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
             </button>
         </div>
@@ -24,7 +25,9 @@
         }
 
         <div style="display: flex; gap: 10px;">
-            <button class="sleek-btn" style="flex: 1;" @onclick="AddPlaylist">@(string.IsNullOrEmpty(editingPlaylistId) ? "Import Playlist" : "Save Changes")</button>
+            <button class="sleek-btn" style="flex: 1;" @onclick="AddPlaylist" disabled="@isLoading">
+                @(isLoading ? "Loading..." : (string.IsNullOrEmpty(editingPlaylistId) ? "Import Playlist" : "Save Changes"))
+            </button>
             @if (!string.IsNullOrEmpty(editingPlaylistId))
             {
                 <button class="sleek-btn" style="flex: 1; background: transparent; border: 1px solid rgba(255,255,255,0.2);" @onclick="CancelEdit">Cancel</button>
@@ -72,16 +75,17 @@
     private string newPlaylistContent = "";
     private string errorMessage = "";
     private string editingPlaylistId = "";
+    private bool isLoading = false;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        PlayerService.Stop(); // Ensure any running video is stopped when going home
-        LoadPlaylists();
+        PlayerService.Stop(); // Ensure any running stream is stopped when returning home
+        await LoadPlaylistsAsync();
     }
 
-    private void LoadPlaylists()
+    private async Task LoadPlaylistsAsync()
     {
-        playlists = StorageService.GetPlaylists();
+        playlists = await PlaylistRepository.GetAllAsync();
     }
 
     private void EditPlaylist(Playlist playlist)
@@ -106,7 +110,7 @@
         {
             var result = await Microsoft.Maui.Storage.FilePicker.Default.PickAsync(new Microsoft.Maui.Storage.PickOptions
             {
-                PickerTitle = "Select Playlist File"
+                PickerTitle = "Select M3U Playlist File"
             });
 
             if (result != null)
@@ -114,11 +118,14 @@
                 newPlaylistContent = result.FullPath;
                 if (string.IsNullOrEmpty(newPlaylistName))
                 {
-                    newPlaylistName = result.FileName;
+                    newPlaylistName = Path.GetFileNameWithoutExtension(result.FileName);
                 }
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error selecting file: {ex.Message}";
+        }
     }
 
     private async Task AddPlaylist()
@@ -131,23 +138,25 @@
 
         if (string.IsNullOrEmpty(editingPlaylistId) && string.IsNullOrWhiteSpace(newPlaylistContent))
         {
-            errorMessage = "Playlist URL or content is required when adding a new playlist.";
+            errorMessage = "Playlist URL or file is required when adding a new playlist.";
             return;
         }
 
+        isLoading = true;
+        errorMessage = "";
+
         try
         {
-            errorMessage = "";
             var playlistToSave = string.IsNullOrEmpty(editingPlaylistId) 
                 ? new Playlist() 
-                : playlists.First(p => p.Id == editingPlaylistId);
+                : playlists.FirstOrDefault(p => p.Id == editingPlaylistId) ?? new Playlist();
 
             if (!string.IsNullOrWhiteSpace(newPlaylistContent))
             {
                 string contentToParse = newPlaylistContent;
-                if (newPlaylistContent.StartsWith("http"))
+                if (newPlaylistContent.StartsWith("http", StringComparison.OrdinalIgnoreCase))
                 {
-                    using var client = new HttpClient();
+                    using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
                     contentToParse = await client.GetStringAsync(newPlaylistContent);
                 }
                 else if (System.IO.File.Exists(newPlaylistContent))
@@ -158,38 +167,45 @@
                 var channels = ParserService.Parse(contentToParse);
                 if (channels.Count == 0)
                 {
-                    errorMessage = "No channels found in the provided content.";
+                    errorMessage = "No channels found in the provided playlist.";
+                    isLoading = false;
                     return;
                 }
                 
                 playlistToSave.Channels = channels;
-                playlistToSave.Url = newPlaylistContent.StartsWith("http") ? newPlaylistContent : "local";
+                playlistToSave.Url = newPlaylistContent.StartsWith("http", StringComparison.OrdinalIgnoreCase) 
+                    ? newPlaylistContent 
+                    : "local";
             }
             
-            playlistToSave.Name = newPlaylistName;
+            playlistToSave.Name = newPlaylistName.Trim();
 
             if (string.IsNullOrEmpty(editingPlaylistId))
             {
-                playlists.Add(playlistToSave);
+                await PlaylistRepository.AddAsync(playlistToSave);
+            }
+            else
+            {
+                await PlaylistRepository.UpdateAsync(playlistToSave);
             }
             
-            StorageService.SavePlaylists(playlists);
+            await LoadPlaylistsAsync();
             CancelEdit();
         }
         catch (Exception ex)
         {
             errorMessage = $"Error processing playlist: {ex.Message}";
         }
+        finally
+        {
+            isLoading = false;
+        }
     }
 
-    private void DeletePlaylist(string id)
+    private async Task DeletePlaylist(string id)
     {
-        var pl = playlists.FirstOrDefault(p => p.Id == id);
-        if (pl != null)
-        {
-            playlists.Remove(pl);
-            StorageService.SavePlaylists(playlists);
-        }
+        await PlaylistRepository.DeleteAsync(id);
+        await LoadPlaylistsAsync();
     }
 
     private void OpenPlaylist(string id)
