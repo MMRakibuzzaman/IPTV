@@ -10,101 +10,108 @@
 
 <div class="player-overlay" @onclick="ToggleControls">
     
+    <!-- Top Bar Controls -->
     @if (showControls)
     {
-        <div class="player-controls-area">
-            <!-- Back Button -->
-            <div style="position: absolute; top: 10px; left: 10px; z-index: 100;">
-                <button class="small-btn" @onclick="GoBack" @onclick:stopPropagation style="background: rgba(0,0,0,0.5); border: none; border-radius: 50%; width: 40px; height: 40px; color: white;">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-                </button>
-            </div>
+        <!-- Back Button -->
+        <div style="position: absolute; top: 14px; left: 14px; z-index: 100;">
+            <button class="small-btn" @onclick="GoBack" @onclick:stopPropagation style="background: rgba(0,0,0,0.6); border: none; border-radius: 50%; width: 42px; height: 42px; color: white;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            </button>
+        </div>
+    }
 
-            <!-- Sidebar Toggle -->
-            <div class="sidebar-toggle-btn" @onclick="ToggleSidebar" @onclick:stopPropagation>
-                <span style="font-size: 24px; color: white;">≡</span>
-            </div>
+    <!-- Sidebar Toggle (Always visible when sidebar is open or when showControls is true) -->
+    @if (showControls || isSidebarOpen)
+    {
+        <div class="sidebar-toggle-btn" @onclick="ToggleSidebar" @onclick:stopPropagation title="@(isSidebarOpen ? "Close Menu" : "Open Channels")">
+            <span style="font-size: 22px; color: white; line-height: 1;">@(isSidebarOpen ? "✕" : "≡")</span>
+        </div>
+    }
+
+    <!-- Bottom Controls -->
+    @if (showControls)
+    {
+        <div class="bottom-controls" style="flex-direction: column; align-items: stretch;" @onclick:stopPropagation>
             
-            <!-- Bottom Controls -->
-            <div class="bottom-controls" style="flex-direction: column; align-items: stretch;" @onclick:stopPropagation>
-                
-                <!-- Seek Slider (only for streams with known duration, not infinite live streams) -->
-                @if (duration > TimeSpan.Zero)
-                {
-                    <input type="range" class="progress-slider" min="0" max="@duration.TotalSeconds" step="1" value="@currentPosition.TotalSeconds" @onchange="OnSeek" />
-                }
+            <!-- Seek Slider (only for streams with known duration, not infinite live streams) -->
+            @if (duration > TimeSpan.Zero)
+            {
+                <input type="range" class="progress-slider" min="0" max="@duration.TotalSeconds" step="1" value="@currentPosition.TotalSeconds" @onchange="OnSeek" />
+            }
 
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                    <div class="control-group">
-                        <!-- Play/Pause Button -->
-                        <button class="small-btn" @onclick="TogglePlayPause" title="Play/Pause" style="margin-right: 10px; width: 40px; height: 40px;">
-                            @if (isPlaying)
-                            {
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
-                            }
-                            else
-                            {
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                            }
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <div class="control-group">
+                    <!-- Play/Pause Button -->
+                    <button class="small-btn" @onclick="TogglePlayPause" title="Play/Pause" style="margin-right: 10px; width: 40px; height: 40px;">
+                        @if (isPlaying)
+                        {
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                        }
+                        else
+                        {
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                        }
+                    </button>
+                    <!-- Volume Icon -->
+                    <span class="control-icon" style="display: flex; align-items: center;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+                    </span>
+                    <input type="range" class="volume-slider" min="0" max="1" step="0.05" value="@currentVolume" @onchange="OnVolumeChanged" />
+                </div>
+            
+                <div class="control-group" style="margin-left: auto; margin-right: 0; position: relative; gap: 8px;">
+                    <!-- Quality Menu -->
+                    <div style="position: relative; display: flex;">
+                        <button class="small-btn" @onclick="() => { isQualityMenuOpen = !isQualityMenuOpen; ResetHideTimer(); }" title="Quality" style="width: 56px; border-radius: 20px; padding: 0;">
+                            <span style="font-size:12px; font-weight:bold">@(selectedQuality?.Name ?? "HD")</span>
                         </button>
-                        <!-- Volume Icon -->
-                        <span class="control-icon" style="display: flex; align-items: center;">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
-                        </span>
-                        <input type="range" class="volume-slider" min="0" max="1" step="0.05" value="@currentVolume" @onchange="OnVolumeChanged" />
+                        
+                        @if (isQualityMenuOpen)
+                        {
+                            <div class="quality-menu" @onclick:stopPropagation>
+                                @foreach (var q in availableQualities)
+                                {
+                                    <div class="quality-item @(selectedQuality == q ? "active" : "")" @onclick="() => SelectQuality(q)">
+                                        @q.Name
+                                    </div>
+                                }
+                            </div>
+                        }
                     </div>
-                
-                    <div class="control-group" style="margin-left: auto; margin-right: 0; position: relative; gap: 8px;">
-                        <!-- Quality Menu -->
-                        <div style="position: relative; display: flex;">
-                            <button class="small-btn" @onclick="() => { isQualityMenuOpen = !isQualityMenuOpen; ResetHideTimer(); }" title="Quality" style="width: 56px; border-radius: 20px; padding: 0;">
-                                <span style="font-size:12px; font-weight:bold">@(selectedQuality?.Name ?? "HD")</span>
-                            </button>
-                            
-                            @if (isQualityMenuOpen)
-                            {
-                                <div class="quality-menu" @onclick:stopPropagation>
-                                    @foreach (var q in availableQualities)
-                                    {
-                                        <div class="quality-item @(selectedQuality == q ? "active" : "")" @onclick="() => SelectQuality(q)">
-                                            @q.Name
-                                        </div>
-                                    }
-                                </div>
-                            }
-                        </div>
 
-                        <!-- Aspect Ratio Icon -->
-                        <button class="small-btn" @onclick="ToggleAspect" title="@currentAspect">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-                        </button>
-                        <!-- Rotate Icon -->
-                        <button class="small-btn" @onclick="ToggleOrientation" title="Rotate">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-                        </button>
-                    </div>
+                    <!-- Aspect Ratio Icon -->
+                    <button class="small-btn" @onclick="ToggleAspect" title="@currentAspect">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                    </button>
+                    <!-- Rotate Icon -->
+                    <button class="small-btn" @onclick="ToggleOrientation" title="Rotate">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                    </button>
                 </div>
             </div>
         </div>
     }
 
     <!-- Sidebar -->
-    <div class="@SidebarClass" @onclick="DoNothing" @onclick:stopPropagation>
+    <div class="@SidebarClass" @onclick:stopPropagation>
         
-        <div style="padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1);">
-            <div style="font-weight: bold; font-size: 18px; margin-bottom: 10px;">
-                @(playlist?.Name ?? "Channels")
+        <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="font-weight: bold; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 48px;">
+                    @(playlist?.Name ?? "Channels")
+                </div>
             </div>
             <input type="text" class="sleek-input" @bind="SearchQuery" @bind:event="oninput" placeholder="Search channels..." style="width: 100%; margin-bottom: 0; padding: 8px 12px; font-size: 14px;" />
         </div>
 
-        <div class="channel-list" style="overflow-y: auto; height: calc(100% - 110px);">
+        <div class="channel-list">
             @if (visibleSidebarItems != null && visibleSidebarItems.Count > 0)
             {
-                <Microsoft.AspNetCore.Components.Web.Virtualization.Virtualize Items="@visibleSidebarItems" Context="item">
+                <Microsoft.AspNetCore.Components.Web.Virtualization.Virtualize Items="@visibleSidebarItems" ItemSize="46f" OverscanCount="20" Context="item">
                     @if (item.IsHeader)
                     {
-                        <div class="group-header" @onclick="() => ToggleGroup(item.Name)" style="padding: 10px 15px; background: rgba(255,255,255,0.05); font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <div class="group-header" @onclick="() => ToggleGroup(item.Name)">
                             <span>@item.Name</span>
                             <span style="font-size: 12px; transition: transform 0.2s; transform: @(groupExpandedState.GetValueOrDefault(item.Name) ? "rotate(180deg)" : "rotate(0deg)")">▼</span>
                         </div>
@@ -170,8 +177,6 @@
 
     private string SidebarClass => isSidebarOpen ? "channels-sidebar open" : "channels-sidebar";
     private string GetChannelClass(Channel channel) => activeChannelId == channel.Id ? "channel-item active" : "channel-item";
-    
-    private void DoNothing() { }
 
     protected override async Task OnInitializedAsync()
     {
@@ -198,7 +203,6 @@
         }
         else
         {
-            // Playlist not found or empty
             Navigation.NavigateTo("/");
             return;
         }
@@ -268,7 +272,6 @@
 
     private void HandlePositionChanged(TimeSpan position)
     {
-        // Throttle UI updates to once per second to prevent unnecessary re-renders
         if ((position - lastRenderedPosition).Duration().TotalSeconds >= 1.0)
         {
             lastRenderedPosition = position;
@@ -292,6 +295,7 @@
     private void ResetHideTimer()
     {
         hideTimer?.Dispose();
+        // Never automatically hide controls or sidebar if sidebar is open
         if (showControls && !isSidebarOpen)
         {
             hideTimer = new System.Threading.Timer(_ => 
@@ -304,6 +308,12 @@
 
     private void ToggleControls()
     {
+        if (isSidebarOpen)
+        {
+            // Do not close sidebar when tapping outside on video; it will close only when the button is pressed again
+            return;
+        }
+
         showControls = !showControls;
         isQualityMenuOpen = false;
         if (showControls)
@@ -313,7 +323,6 @@
         else
         {
             hideTimer?.Dispose();
-            isSidebarOpen = false;
         }
     }
 
@@ -322,7 +331,6 @@
         activeChannelId = channel.Id;
         isQualityMenuOpen = false;
         
-        // Fetch stream qualities if available
         availableQualities = await HlsParserService.GetAvailableQualitiesAsync(channel.StreamUrl);
         selectedQuality = availableQualities.FirstOrDefault();
         
@@ -332,8 +340,7 @@
             PlayerService.Play(streamToPlay);
         }
 
-        isSidebarOpen = false;
-        ResetHideTimer();
+        // Keep sidebar open so user can keep browsing channels without reopening
         StateHasChanged();
     }
 
@@ -350,7 +357,7 @@
         isSidebarOpen = !isSidebarOpen;
         if (isSidebarOpen)
         {
-            hideTimer?.Dispose();
+            hideTimer?.Dispose(); // Don't auto-hide when sidebar is active
         }
         else
         {
