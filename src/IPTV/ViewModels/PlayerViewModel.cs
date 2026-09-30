@@ -56,7 +56,16 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     private double _currentPositionSeconds = 0;
 
     [ObservableProperty]
+    private string _currentPositionText = "00:00";
+
+    [ObservableProperty]
     private double _durationSeconds = 0;
+
+    [ObservableProperty]
+    private string _durationText = "00:00";
+
+    private double _pendingResumeSeconds = 0;
+    private bool _isUpdatingPositionFromPlayer = false;
 
     [ObservableProperty]
     private double _volume = 1.0;
@@ -258,7 +267,15 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     {
         SelectedQuality = quality;
         IsQualityMenuOpen = false;
-        _playerService.Play(quality.Url);
+
+        TimeSpan? resumePos = null;
+        if (DurationSeconds > 0 && CurrentPositionSeconds > 1)
+        {
+            resumePos = TimeSpan.FromSeconds(CurrentPositionSeconds);
+            _pendingResumeSeconds = CurrentPositionSeconds;
+        }
+
+        _playerService.Play(quality.Url, resumePos);
         ResetHideTimer();
     }
 
@@ -345,11 +362,43 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
         _mainViewModel.NavigateToHome();
     }
 
+    partial void OnCurrentPositionSecondsChanged(double value)
+    {
+        CurrentPositionText = FormatTime(TimeSpan.FromSeconds(value));
+        if (_isUpdatingPositionFromPlayer)
+            return;
+
+        _playerService.SetPosition(TimeSpan.FromSeconds(value));
+        ResetHideTimer();
+    }
+
+    partial void OnDurationSecondsChanged(double value)
+    {
+        DurationText = FormatTime(TimeSpan.FromSeconds(value));
+    }
+
+    private static string FormatTime(TimeSpan t)
+    {
+        if (t.TotalSeconds <= 0) return "00:00";
+        return t.TotalHours >= 1 
+            ? t.ToString(@"hh\:mm\:ss") 
+            : t.ToString(@"mm\:ss");
+    }
+
     private void HandlePlayStateChanged(bool playing)
     {
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
             IsPlaying = playing;
+            if (playing && _pendingResumeSeconds > 1)
+            {
+                var resume = _pendingResumeSeconds;
+                _pendingResumeSeconds = 0;
+                Task.Delay(350).ContinueWith(_ =>
+                {
+                    _playerService.SetPosition(TimeSpan.FromSeconds(resume));
+                });
+            }
         });
     }
 
@@ -357,7 +406,9 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     {
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
+            _isUpdatingPositionFromPlayer = true;
             CurrentPositionSeconds = pos.TotalSeconds;
+            _isUpdatingPositionFromPlayer = false;
         });
     }
 

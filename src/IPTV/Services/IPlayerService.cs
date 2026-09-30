@@ -18,7 +18,7 @@ public interface IPlayerService : IDisposable
     LibVLC? LibVLCInstance { get; }
     MediaPlayer? MediaPlayer { get; }
 
-    void Play(string url);
+    void Play(string url, TimeSpan? startPosition = null);
     void Stop();
     void SetVolume(double volume);
     void SetAspect(string aspect);

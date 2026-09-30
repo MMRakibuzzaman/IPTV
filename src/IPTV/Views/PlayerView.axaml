@@ -228,7 +228,7 @@
                 
                 <!-- Seek Slider (only when stream duration is known) -->
                 <Grid ColumnDefinitions="Auto, *, Auto" Margin="4,0" IsVisible="{Binding DurationSeconds}">
-                    <TextBlock Grid.Column="0" Text="{Binding CurrentPositionSeconds, StringFormat='{}{0:F0}s'}" 
+                    <TextBlock Grid.Column="0" Text="{Binding CurrentPositionText}" 
                                FontSize="11" Foreground="#9CA3AF" VerticalAlignment="Center" />
                     
                     <Slider Grid.Column="1"
@@ -237,7 +237,7 @@
                             Maximum="{Binding DurationSeconds}"
                             Value="{Binding CurrentPositionSeconds, Mode=TwoWay}" />
 
-                    <TextBlock Grid.Column="2" Text="{Binding DurationSeconds, StringFormat='{}{0:F0}s'}" 
+                    <TextBlock Grid.Column="2" Text="{Binding DurationText}" 
                                FontSize="11" Foreground="#9CA3AF" VerticalAlignment="Center" />
                 </Grid>
 

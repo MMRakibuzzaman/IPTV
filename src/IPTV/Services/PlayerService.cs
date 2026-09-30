@@ -52,7 +52,7 @@ public class PlayerService : IPlayerService
         }
     }
 
-    public void Play(string url)
+    public void Play(string url, TimeSpan? startPosition = null)
     {
         OnPlayStream?.Invoke(url);
         if (_libVLC != null && _mediaPlayer != null && !string.IsNullOrWhiteSpace(url))
@@ -60,6 +60,10 @@ public class PlayerService : IPlayerService
             try
             {
                 var media = new Media(_libVLC, new Uri(url));
+                if (startPosition.HasValue && startPosition.Value.TotalSeconds > 1)
+                {
+                    media.AddOption($":start-time={(int)startPosition.Value.TotalSeconds}");
+                }
                 _mediaPlayer.Play(media);
             }
             catch (Exception ex)
