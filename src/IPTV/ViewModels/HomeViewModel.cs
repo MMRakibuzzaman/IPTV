@@ -36,6 +36,20 @@ public partial class HomeViewModel : ViewModelBase
     private bool _isLoading = false;
 
     public bool IsEditing => !string.IsNullOrEmpty(EditingPlaylistId);
+    public string CardHeaderTitle => IsEditing ? "Edit Playlist" : "Add New Playlist";
+    public string ActionButtonText => IsLoading ? "Loading..." : (IsEditing ? "Save Changes" : "Import Playlist");
+
+    partial void OnEditingPlaylistIdChanged(string value)
+    {
+        OnPropertyChanged(nameof(IsEditing));
+        OnPropertyChanged(nameof(CardHeaderTitle));
+        OnPropertyChanged(nameof(ActionButtonText));
+    }
+
+    partial void OnIsLoadingChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ActionButtonText));
+    }
 
     public HomeViewModel(
         MainViewModel mainViewModel,

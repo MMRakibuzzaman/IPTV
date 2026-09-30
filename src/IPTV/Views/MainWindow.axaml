@@ -6,7 +6,7 @@
         xmlns:views="using:IPTV.Views"
         mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="700"
         x:Class="IPTV.Views.MainWindow"
-        Icon="/Assets/avalonia-logo.ico"
+        Icon="/Assets/appicon.png"
         Title="IPTV Player"
         Width="1100" Height="700"
         MinWidth="480" MinHeight="360"
