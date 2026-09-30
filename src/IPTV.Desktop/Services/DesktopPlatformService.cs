@@ -31,11 +31,12 @@ public class DesktopPlatformService : DefaultPlatformService
         Func<bool> isSidebarOpen,
         Func<bool> areControlsShowing,
         Action onPointerMoved,
-        Action onVideoClicked)
+        Action onVideoClicked,
+        Action onChannelsClicked)
     {
         if (OperatingSystem.IsWindows())
         {
-            return new WindowsMouseHook(isSidebarOpen, areControlsShowing, onPointerMoved, onVideoClicked);
+            return new WindowsMouseHook(isSidebarOpen, areControlsShowing, onPointerMoved, onVideoClicked, onChannelsClicked);
         }
         return null;
     }

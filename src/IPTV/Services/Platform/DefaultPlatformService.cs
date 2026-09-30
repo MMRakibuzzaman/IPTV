@@ -59,7 +59,8 @@ public class DefaultPlatformService : IPlatformService
         Func<bool> isSidebarOpen,
         Func<bool> areControlsShowing,
         Action onPointerMoved,
-        Action onVideoClicked) => null;
+        Action onVideoClicked,
+        Action onChannelsClicked) => null;
 
     protected static TopLevel? GetCurrentTopLevel()
     {

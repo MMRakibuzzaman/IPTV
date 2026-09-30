@@ -55,9 +55,6 @@ public class WindowsMouseHook : IDisposable
     private static extern IntPtr GetModuleHandle(string? lpModuleName);
 
     [DllImport("user32.dll")]
-    private static extern IntPtr WindowFromPoint(POINT Point);
-
-    [DllImport("user32.dll")]
     private static extern IntPtr GetAncestor(IntPtr hwnd, uint gaFlags);
 
     [DllImport("user32.dll")]
@@ -73,22 +70,26 @@ public class WindowsMouseHook : IDisposable
     private readonly Func<bool> _areControlsShowing;
     private readonly Action _onPointerMoved;
     private readonly Action _onVideoClicked;
+    private readonly Action _onChannelsClicked;
 
     private readonly LowLevelMouseProc _proc;
     private IntPtr _hookId = IntPtr.Zero;
-    private int _lastX = -1;
-    private int _lastY = -1;
+    private long _lastClickTime = 0;
+    private int _wakeX = -1;
+    private int _wakeY = -1;
 
     public WindowsMouseHook(
         Func<bool> isSidebarOpen,
         Func<bool> areControlsShowing,
         Action onPointerMoved,
-        Action onVideoClicked)
+        Action onVideoClicked,
+        Action onChannelsClicked)
     {
         _isSidebarOpen = isSidebarOpen;
         _areControlsShowing = areControlsShowing;
         _onPointerMoved = onPointerMoved;
         _onVideoClicked = onVideoClicked;
+        _onChannelsClicked = onChannelsClicked;
 
         _proc = HookCallback;
         try
@@ -175,27 +176,65 @@ public class WindowsMouseHook : IDisposable
         bool controlsShowing = _areControlsShowing();
         bool sidebarOpen = _isSidebarOpen();
 
-        double topBarLimit = 52;
-        double bottomBarLimit = controlsShowing ? (dipHeight - 88) : dipHeight;
-        double rightLimit = sidebarOpen ? (dipWidth - 320) : dipWidth;
-
-        bool isOverVideoArea = dipY >= topBarLimit && dipY <= bottomBarLimit && dipX >= 0 && dipX <= rightLimit;
-
+        // 1. Mouse Move Handling
         if (msg == WM_MOUSEMOVE)
         {
-            if (Math.Abs(screenPt.x - _lastX) > 2 || Math.Abs(screenPt.y - _lastY) > 2)
+            // Suppress movement processing for 600ms after a click to avoid click-jitter
+            if (Environment.TickCount64 - _lastClickTime < 600)
+                return;
+
+            if (_wakeX < 0)
             {
-                _lastX = screenPt.x;
-                _lastY = screenPt.y;
-                Avalonia.Threading.Dispatcher.UIThread.Post(_onPointerMoved);
+                _wakeX = screenPt.x;
+                _wakeY = screenPt.y;
+                return;
             }
+
+            int dx = screenPt.x - _wakeX;
+            int dy = screenPt.y - _wakeY;
+            // Ignore minor mouse jitter (< 20px) to prevent controls popping up unexpectedly
+            if ((dx * dx + dy * dy) < (20 * 20))
+                return;
+
+            _wakeX = screenPt.x;
+            _wakeY = screenPt.y;
+            Avalonia.Threading.Dispatcher.UIThread.Post(_onPointerMoved);
+            return;
         }
-        else if (msg == WM_LBUTTONDOWN)
+
+        // 2. Mouse Click Handling (WM_LBUTTONDOWN)
+        if (msg == WM_LBUTTONDOWN)
         {
-            if (isOverVideoArea)
+            _lastClickTime = Environment.TickCount64;
+            _wakeX = screenPt.x;
+            _wakeY = screenPt.y;
+
+            // If sidebar is currently open, clicks on the right sidebar area go to the sidebar
+            if (sidebarOpen && dipX >= (dipWidth - 320))
             {
-                Avalonia.Threading.Dispatcher.UIThread.Post(_onVideoClicked);
+                return;
             }
+
+            // Top-Right Corner (where Channels / Hamburger is located)
+            // Even if controls/title bar are hidden, clicking in this top-right corner opens the channels menu!
+            if (dipY <= 60 && dipX >= (dipWidth - 150))
+            {
+                Avalonia.Threading.Dispatcher.UIThread.Post(_onChannelsClicked);
+                return;
+            }
+
+            // If controls are showing, clicks inside top bar (<= 52) or bottom bar (>= dipHeight - 88)
+            // are allowed through to let buttons and sliders handle their own clicks
+            if (controlsShowing)
+            {
+                if (dipY <= 52 || dipY >= (dipHeight - 88))
+                {
+                    return;
+                }
+            }
+
+            // Otherwise, it is a click on the video area! Toggle controls!
+            Avalonia.Threading.Dispatcher.UIThread.Post(_onVideoClicked);
         }
     }
 

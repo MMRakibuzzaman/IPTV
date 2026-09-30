@@ -8,8 +8,6 @@
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="600"
              x:Class="IPTV.Views.PlayerView"
              x:DataType="vm:PlayerViewModel"
-             PointerMoved="OnPlayerPointerMoved"
-             PointerPressed="OnPlayerPointerPressed"
              Background="Black">
 
     <UserControl.Styles>
@@ -79,14 +77,14 @@
                 Background="#12121A"
                 BorderBrush="#222230"
                 BorderThickness="0,0,0,1"
-                Padding="16,10">
+                Padding="16,8"
+                IsVisible="{Binding ShowControls}">
             <Grid ColumnDefinitions="Auto, *, Auto" VerticalAlignment="Center">
                 
                 <!-- Left: Back Button -->
                 <Button Grid.Column="0"
                         Classes="player-btn"
                         Command="{Binding GoBackCommand}"
-                        IsVisible="{Binding ShowControls}"
                         ToolTip.Tip="Back to Playlists">
                     <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                         <Viewbox Width="14" Height="14">
@@ -98,8 +96,7 @@
                 </Button>
 
                 <!-- Center: Active Channel Name -->
-                <StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center"
-                            IsVisible="{Binding ShowControls}">
+                <StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
                     <TextBlock Text="{Binding ActiveChannel.Name, FallbackValue='IPTV Stream'}"
                                Foreground="White"
                                FontWeight="SemiBold"
@@ -111,11 +108,11 @@
                                HorizontalAlignment="Center" />
                 </StackPanel>
 
-                <!-- Right: Hamburger Menu / Channel Sidebar Button (Always Visible) -->
+                <!-- Right: Hamburger Menu / Channel Sidebar Button -->
                 <Button Grid.Column="2"
                         Classes="player-btn"
                         Command="{Binding ToggleSidebarCommand}"
-                        ToolTip.Tip="Open Channel List">
+                        ToolTip.Tip="Open Channel List (☰)">
                     <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                         <Viewbox Width="16" Height="16">
                             <Path Data="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"
@@ -128,14 +125,13 @@
         </Border>
 
         <!-- 2. Middle Row: Video Engine + Channel Sidebar -->
-        <Grid Grid.Row="1" ColumnDefinitions="*, Auto" Background="Black" PointerPressed="OnVideoSurfacePointerPressed">
+        <Grid Grid.Row="1" ColumnDefinitions="*, Auto" Background="Black">
             
             <!-- Video Surface -->
             <vlc:VideoView Grid.Column="0"
                            MediaPlayer="{Binding MediaPlayer}"
                            HorizontalAlignment="Stretch"
-                           VerticalAlignment="Stretch"
-                           PointerPressed="OnVideoSurfacePointerPressed" />
+                           VerticalAlignment="Stretch" />
 
             <!-- Channels Sidebar (Docked to the right) -->
             <Border Grid.Column="1"

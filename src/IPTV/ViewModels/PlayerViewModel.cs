@@ -119,6 +119,10 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
             () =>
             {
                 ToggleControls();
+            },
+            () =>
+            {
+                ToggleSidebar();
             }
         );
 
