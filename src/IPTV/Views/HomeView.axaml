@@ -1,0 +1,247 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:IPTV.ViewModels"
+             xmlns:models="using:IPTV.Models"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="700"
+             x:Class="IPTV.Views.HomeView"
+             x:DataType="vm:HomeViewModel"
+             Background="#0D0D11">
+
+    <UserControl.Styles>
+        <!-- Sleek Card Style -->
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="#181822" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="BorderBrush" Value="#262636" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="20" />
+        </Style>
+
+        <!-- Sleek Action Button -->
+        <Style Selector="Button.action-btn">
+            <Setter Property="Background" Value="#222230" />
+            <Setter Property="Foreground" Value="#E5E7EB" />
+            <Setter Property="CornerRadius" Value="20" />
+            <Setter Property="Width" Value="38" />
+            <Setter Property="Height" Value="38" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="#313144" />
+        </Style>
+        <Style Selector="Button.action-btn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#333346" />
+            <Setter Property="BorderBrush" Value="#4C4C66" />
+        </Style>
+
+        <!-- Delete Action Button -->
+        <Style Selector="Button.delete-btn">
+            <Setter Property="Background" Value="#2A161A" />
+            <Setter Property="Foreground" Value="#FF5A65" />
+            <Setter Property="CornerRadius" Value="20" />
+            <Setter Property="Width" Value="38" />
+            <Setter Property="Height" Value="38" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="#50242B" />
+        </Style>
+        <Style Selector="Button.delete-btn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#3D1C23" />
+            <Setter Property="BorderBrush" Value="#FF5A65" />
+        </Style>
+
+        <!-- Primary Gradient Button -->
+        <Style Selector="Button.primary-btn">
+            <Setter Property="Background" Value="#6366F1" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Height" Value="44" />
+            <Setter Property="Padding" Value="20,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="Button.primary-btn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#4F46E5" />
+        </Style>
+
+        <!-- Secondary Button -->
+        <Style Selector="Button.secondary-btn">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#D1D5DB" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Height" Value="44" />
+            <Setter Property="Padding" Value="20,0" />
+            <Setter Property="BorderBrush" Value="#374151" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.secondary-btn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#1F2937" />
+        </Style>
+    </UserControl.Styles>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="30,24,30,40" MaxWidth="800" HorizontalAlignment="Stretch">
+            
+            <!-- App Header Title -->
+            <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,0,0,24" VerticalAlignment="Center">
+                <Border Width="38" Height="38" CornerRadius="10" Background="#6366F1">
+                    <Path Data="M8 5v14l11-7z" Fill="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="IPTV Player" FontSize="22" FontWeight="Bold" Foreground="White" />
+                    <TextBlock Text="Cross-Platform Live Streaming" FontSize="12" Foreground="#9CA3AF" />
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Card: Add / Edit Playlist -->
+            <Border Classes="card" Margin="0,0,0,30">
+                <StackPanel Spacing="16">
+                    <TextBlock Text="{Binding IsEditing, Converter={x:Null}, FallbackValue='Add New Playlist'}" 
+                               FontSize="18" FontWeight="SemiBold" Foreground="White">
+                        <!-- Dynamic heading based on editing state -->
+                    </TextBlock>
+
+                    <!-- Playlist Name Input -->
+                    <TextBox Text="{Binding NewPlaylistName}" 
+                             PlaceholderText="Playlist Name (e.g. Sports, News, Movies)"
+                             CornerRadius="10"
+                             Height="42"
+                             Padding="14,10"
+                             Background="#101017"
+                             BorderBrush="#2A2A3C"
+                             Foreground="White" />
+
+                    <!-- URL or File Input with Browse Button -->
+                    <Grid ColumnDefinitions="*, 10, Auto">
+                        <TextBox Grid.Column="0"
+                                 Text="{Binding NewPlaylistContent}"
+                                 PlaceholderText="M3U / M3U8 URL or choose local file..."
+                                 CornerRadius="10"
+                                 Height="42"
+                                 Padding="14,10"
+                                 Background="#101017"
+                                 BorderBrush="#2A2A3C"
+                                 Foreground="White" />
+
+                        <Button Grid.Column="2"
+                                Command="{Binding PickFileCommand}"
+                                Height="42"
+                                Width="52"
+                                CornerRadius="10"
+                                Background="#20202E"
+                                BorderBrush="#2F2F44"
+                                BorderThickness="1"
+                                ToolTip.Tip="Browse Local File">
+                            <Path Data="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"
+                                  Fill="#9CA3AF"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center" />
+                        </Button>
+                    </Grid>
+
+                    <!-- Error Message -->
+                    <TextBlock Text="{Binding ErrorMessage}"
+                               Foreground="#FF5A65"
+                               FontSize="13"
+                               IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+                    <!-- Action Buttons -->
+                    <Grid ColumnDefinitions="*, 12, *" Margin="0,4,0,0">
+                        <Button Grid.Column="0"
+                                Classes="primary-btn"
+                                HorizontalAlignment="Stretch"
+                                Command="{Binding AddOrUpdatePlaylistCommand}"
+                                IsEnabled="{Binding !IsLoading}">
+                            <TextBlock Text="{Binding IsLoading, Converter={x:Null}, FallbackValue='Import Playlist'}"
+                                       HorizontalAlignment="Center" />
+                        </Button>
+
+                        <Button Grid.Column="2"
+                                Classes="secondary-btn"
+                                HorizontalAlignment="Stretch"
+                                Command="{Binding CancelEditCommand}"
+                                IsVisible="{Binding IsEditing}"
+                                Content="Cancel" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- My Playlists Section Header -->
+            <TextBlock Text="My Playlists" FontSize="20" FontWeight="Bold" Foreground="White" Margin="0,0,0,16" />
+
+            <!-- Empty State -->
+            <Border Classes="card" IsVisible="{Binding !Playlists.Count}">
+                <StackPanel HorizontalAlignment="Center" Margin="0,16" Spacing="8">
+                    <Path Data="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"
+                          Fill="#4B5563"
+                          Width="32" Height="32"
+                          HorizontalAlignment="Center" />
+                    <TextBlock Text="No playlists found. Add one above to start streaming."
+                               Foreground="#9CA3AF"
+                               FontSize="14"
+                               HorizontalAlignment="Center" />
+                </StackPanel>
+            </Border>
+
+            <!-- Playlists List -->
+            <ItemsControl ItemsSource="{Binding Playlists}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:Playlist">
+                        <Border Classes="card" Margin="0,0,0,12" Padding="16,14">
+                            <Grid ColumnDefinitions="*, Auto" VerticalAlignment="Center">
+                                
+                                <!-- Playlist Info -->
+                                <StackPanel Grid.Column="0" Spacing="3" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Name}" FontSize="16" FontWeight="SemiBold" Foreground="White" />
+                                    <TextBlock Text="{Binding Channels.Count, StringFormat='{}{0} channels'}" 
+                                               FontSize="12" Foreground="#9CA3AF" />
+                                </StackPanel>
+
+                                <!-- Playlist Action Buttons -->
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                    
+                                    <!-- Watch Button -->
+                                    <Button Classes="action-btn"
+                                            Command="{Binding $parent[UserControl].((vm:HomeViewModel)DataContext).OpenPlaylistCommand}"
+                                            CommandParameter="{Binding Id}"
+                                            ToolTip.Tip="Watch Channels">
+                                        <Path Data="M8 5v14l11-7z" Fill="#60A5FA" Width="14" Height="14" />
+                                    </Button>
+
+                                    <!-- Edit Button -->
+                                    <Button Classes="action-btn"
+                                            Command="{Binding $parent[UserControl].((vm:HomeViewModel)DataContext).EditPlaylistCommand}"
+                                            CommandParameter="{Binding .}"
+                                            ToolTip.Tip="Edit Playlist">
+                                        <Path Data="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"
+                                              Fill="#9CA3AF" Width="13" Height="13" />
+                                    </Button>
+
+                                    <!-- Delete Button -->
+                                    <Button Classes="delete-btn"
+                                            Command="{Binding $parent[UserControl].((vm:HomeViewModel)DataContext).DeletePlaylistCommand}"
+                                            CommandParameter="{Binding Id}"
+                                            ToolTip.Tip="Delete Playlist">
+                                        <Path Data="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
+                                              Fill="#FF5A65" Width="13" Height="13" />
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

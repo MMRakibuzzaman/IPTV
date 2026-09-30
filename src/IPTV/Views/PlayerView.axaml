@@ -1,0 +1,277 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:IPTV.ViewModels"
+             xmlns:models="using:IPTV.Models"
+             xmlns:vlc="clr-namespace:LibVLCSharp.Avalonia;assembly=LibVLCSharp.Avalonia"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="600"
+             x:Class="IPTV.Views.PlayerView"
+             x:DataType="vm:PlayerViewModel"
+             Background="Black">
+
+    <UserControl.Styles>
+        <!-- Floating Glass Button -->
+        <Style Selector="Button.glass-btn">
+            <Setter Property="Background" Value="#99000000" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="CornerRadius" Value="21" />
+            <Setter Property="Width" Value="42" />
+            <Setter Property="Height" Value="42" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="#44FFFFFF" />
+        </Style>
+        <Style Selector="Button.glass-btn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#CC202028" />
+            <Setter Property="BorderBrush" Value="#88FFFFFF" />
+        </Style>
+
+        <!-- Channel Item Style -->
+        <Style Selector="Button.channel-btn">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#E5E7EB" />
+            <Setter Property="Padding" Value="14,10" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="Button.channel-btn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#222232" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid>
+        <!-- 1. Background LibVLC Video Surface -->
+        <vlc:VideoView MediaPlayer="{Binding MediaPlayer}"
+                       HorizontalAlignment="Stretch"
+                       VerticalAlignment="Stretch" />
+
+        <!-- 2. Transparent Tap/Click Layer for toggling controls -->
+        <Panel Background="Transparent"
+               PointerPressed="OnVideoSurfacePointerPressed" />
+
+        <!-- 3. Top Bar (Back Button & Title) -->
+        <Grid VerticalAlignment="Top" Margin="20" IsVisible="{Binding ShowControls}">
+            <!-- Back Button -->
+            <Button Classes="glass-btn"
+                    HorizontalAlignment="Left"
+                    Command="{Binding GoBackCommand}"
+                    ToolTip.Tip="Back to Playlists">
+                <Path Data="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"
+                      Fill="White" Width="18" Height="18" />
+            </Button>
+
+            <!-- Channel / Playlist Title -->
+            <TextBlock Text="{Binding ActiveChannel.Name, FallbackValue=''}"
+                       Foreground="White"
+                       FontWeight="SemiBold"
+                       FontSize="16"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center">
+                <TextBlock.Effect>
+                    <DropShadowEffect BlurRadius="6" Color="Black" Opacity="0.8" />
+                </TextBlock.Effect>
+            </TextBlock>
+        </Grid>
+
+        <!-- 4. Floating Sidebar Toggle (Always accessible) -->
+        <Button Classes="glass-btn"
+                VerticalAlignment="Top"
+                HorizontalAlignment="Right"
+                Margin="20"
+                Command="{Binding ToggleSidebarCommand}"
+                IsVisible="{Binding ShowControls}"
+                ToolTip.Tip="Toggle Channel List">
+            <Path Data="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"
+                  Fill="White" Width="18" Height="18" />
+        </Button>
+
+        <!-- 5. Bottom Controls Bar -->
+        <Border VerticalAlignment="Bottom"
+                HorizontalAlignment="Stretch"
+                Margin="24,0,24,24"
+                Background="#B30C0C14"
+                CornerRadius="16"
+                BorderBrush="#33FFFFFF"
+                BorderThickness="1"
+                Padding="16,12"
+                IsVisible="{Binding ShowControls}">
+            <StackPanel Spacing="8">
+                
+                <!-- Seek Slider (visible if duration > 0) -->
+                <Grid ColumnDefinitions="Auto, *, Auto" Margin="4,0" IsVisible="{Binding DurationSeconds}">
+                    <TextBlock Grid.Column="0" Text="{Binding CurrentPositionSeconds, StringFormat='{}{0:F0}s'}" 
+                               FontSize="11" Foreground="#9CA3AF" VerticalAlignment="Center" />
+                    
+                    <Slider Grid.Column="1"
+                            Margin="10,0"
+                            Minimum="0"
+                            Maximum="{Binding DurationSeconds}"
+                            Value="{Binding CurrentPositionSeconds, Mode=TwoWay}" />
+
+                    <TextBlock Grid.Column="2" Text="{Binding DurationSeconds, StringFormat='{}{0:F0}s'}" 
+                               FontSize="11" Foreground="#9CA3AF" VerticalAlignment="Center" />
+                </Grid>
+
+                <!-- Buttons & Controls Row -->
+                <Grid ColumnDefinitions="Auto, Auto, *, Auto">
+                    
+                    <!-- Play / Pause Button -->
+                    <Button Grid.Column="0"
+                            Classes="glass-btn"
+                            Width="38" Height="38"
+                            Command="{Binding TogglePlayPauseCommand}"
+                            ToolTip.Tip="Play / Pause">
+                        <Panel>
+                            <!-- Pause Icon (when playing) -->
+                            <Path Data="M6 19h4V5H6v14zm8-14v14h4V5h-4z"
+                                  Fill="White" Width="14" Height="14"
+                                  IsVisible="{Binding IsPlaying}" />
+                            <!-- Play Icon (when paused) -->
+                            <Path Data="M8 5v14l11-7z"
+                                  Fill="White" Width="14" Height="14"
+                                  IsVisible="{Binding !IsPlaying}" />
+                        </Panel>
+                    </Button>
+
+                    <!-- Volume Control Group -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" Margin="14,0,0,0" VerticalAlignment="Center">
+                        <Path Data="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"
+                              Fill="#9CA3AF" Width="16" Height="16" VerticalAlignment="Center" />
+                        
+                        <Slider Minimum="0" Maximum="1" Width="80"
+                                Value="{Binding Volume, Mode=TwoWay}"
+                                VerticalAlignment="Center" />
+                    </StackPanel>
+
+                    <!-- Right-aligned controls (Quality, Aspect, Orientation) -->
+                    <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        
+                        <!-- Quality Menu Button -->
+                        <Button Classes="glass-btn"
+                                Width="60" Height="34"
+                                CornerRadius="17"
+                                Padding="8,0"
+                                ToolTip.Tip="Stream Quality">
+                            <TextBlock Text="{Binding SelectedQuality.Name, FallbackValue='HD'}" 
+                                       FontSize="11" FontWeight="Bold" Foreground="White" />
+                            <Button.Flyout>
+                                <MenuFlyout ItemsSource="{Binding AvailableQualities}">
+                                    <MenuFlyout.ItemTemplate>
+                                        <DataTemplate x:DataType="models:StreamQuality">
+                                            <MenuItem Header="{Binding Name}"
+                                                      Command="{Binding $parent[UserControl].((vm:PlayerViewModel)DataContext).SelectQualityCommand}"
+                                                      CommandParameter="{Binding .}" />
+                                        </DataTemplate>
+                                    </MenuFlyout.ItemTemplate>
+                                </MenuFlyout>
+                            </Button.Flyout>
+                        </Button>
+
+                        <!-- Aspect Ratio Switcher -->
+                        <Button Classes="glass-btn"
+                                Width="38" Height="38"
+                                Command="{Binding ToggleAspectCommand}"
+                                ToolTip.Tip="{Binding CurrentAspect, StringFormat='Aspect: {0}'}">
+                            <Path Data="M19 12h-2v3h-3v2h5v-5zM7 9h3V7H5v5h2V9zm14-6H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16.01H3V4.99h18v14.02z"
+                                  Fill="White" Width="16" Height="16" />
+                        </Button>
+
+                        <!-- Screen Orientation Switcher (mobile/cross-platform) -->
+                        <Button Classes="glass-btn"
+                                Width="38" Height="38"
+                                Command="{Binding ToggleOrientationCommand}"
+                                IsVisible="{Binding CanChangeOrientation}"
+                                ToolTip.Tip="Rotate Screen">
+                            <Path Data="M16.48 2.52c3.27 1.55 5.61 4.72 5.97 8.48h1.5C23.44 4.84 18.29 0 12 0l-.66.03 3.81 3.81 1.33-1.32zM12 24c6.29 0 11.44-4.84 11.95-11h-1.5c-.36 3.76-2.7 6.93-5.97 8.48l-1.33-1.32L11.34 24l.66 0z"
+                                  Fill="White" Width="16" Height="16" />
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- 6. Channel Sidebar Overlay -->
+        <Border HorizontalAlignment="Right"
+                VerticalAlignment="Stretch"
+                Width="320"
+                Background="#E6101018"
+                BorderBrush="#33FFFFFF"
+                BorderThickness="1,0,0,0"
+                IsVisible="{Binding IsSidebarOpen}">
+            <Grid RowDefinitions="Auto, *">
+                
+                <!-- Sidebar Header -->
+                <StackPanel Grid.Row="0" Margin="16" Spacing="10">
+                    <Grid ColumnDefinitions="*, Auto">
+                        <TextBlock Grid.Column="0"
+                                   Text="{Binding PlaylistTitle}"
+                                   FontSize="16"
+                                   FontWeight="Bold"
+                                   Foreground="White"
+                                   VerticalAlignment="Center" />
+                        <Button Grid.Column="1"
+                                Classes="glass-btn"
+                                Width="32" Height="32"
+                                Command="{Binding ToggleSidebarCommand}">
+                            <TextBlock Text="✕" FontSize="14" Foreground="#9CA3AF" />
+                        </Button>
+                    </Grid>
+
+                    <!-- Search Channels -->
+                    <TextBox Text="{Binding SearchQuery, Mode=TwoWay}"
+                             PlaceholderText="Search channels..."
+                             CornerRadius="8"
+                             Height="36"
+                             Padding="10,6"
+                             Background="#1A1A24"
+                             BorderBrush="#313146"
+                             Foreground="White" />
+                </StackPanel>
+
+                <!-- Channels & Groups List -->
+                <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl ItemsSource="{Binding VisibleSidebarItems}" Margin="10,0,10,16">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:SidebarItemViewModel">
+                                <Panel>
+                                    <!-- Group Header -->
+                                    <Button Classes="channel-btn"
+                                            IsVisible="{Binding IsHeader}"
+                                            Command="{Binding $parent[UserControl].((vm:PlayerViewModel)DataContext).ToggleGroupCommand}"
+                                            CommandParameter="{Binding Name}"
+                                            Background="#181824"
+                                            Margin="0,4,0,2">
+                                        <Grid ColumnDefinitions="*, Auto" Width="270">
+                                            <TextBlock Grid.Column="0" Text="{Binding Name}" 
+                                                       FontWeight="SemiBold" FontSize="13" Foreground="#818CF8" />
+                                            <TextBlock Grid.Column="1" Text="▼" 
+                                                       FontSize="10" Foreground="#818CF8" />
+                                        </Grid>
+                                    </Button>
+
+                                    <!-- Channel Item -->
+                                    <Button Classes="channel-btn"
+                                            IsVisible="{Binding !IsHeader}"
+                                            Command="{Binding $parent[UserControl].((vm:PlayerViewModel)DataContext).PlayChannelCommand}"
+                                            CommandParameter="{Binding Channel}"
+                                            Background="{Binding IsActive, Converter={x:Null}, FallbackValue='Transparent'}">
+                                        <TextBlock Text="{Binding Channel.Name, FallbackValue=''}" 
+                                                   FontSize="13" 
+                                                   Foreground="{Binding IsActive, Converter={x:Null}, FallbackValue='White'}"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </Button>
+                                </Panel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+    </Grid>
+</UserControl>
