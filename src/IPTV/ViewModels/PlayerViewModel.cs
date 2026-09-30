@@ -29,6 +29,7 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     private readonly IPlatformService _platformService;
 
     private Playlist? _playlist;
+    private Timer? _hideTimer;
     private readonly Dictionary<string, bool> _groupExpandedState = new();
     private readonly string[] _aspects = { "Fit", "16:9", "4:3", "16:10", "21:9" };
     private int _aspectIndex = 0;
@@ -226,6 +227,8 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
                 item.IsActive = (item.Channel.Id == channel.Id);
             }
         }
+
+        ResetHideTimer();
     }
 
     [RelayCommand]
@@ -234,24 +237,45 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
         SelectedQuality = quality;
         IsQualityMenuOpen = false;
         _playerService.Play(quality.Url);
+        ResetHideTimer();
     }
 
     [RelayCommand]
     public void TogglePlayPause()
     {
         _playerService.TogglePlayPause();
+        ResetHideTimer();
     }
 
     [RelayCommand]
     public void ToggleSidebar()
     {
         IsSidebarOpen = !IsSidebarOpen;
+        if (IsSidebarOpen)
+        {
+            ShowControls = true;
+            _hideTimer?.Dispose();
+            _hideTimer = null;
+        }
+        else
+        {
+            ResetHideTimer();
+        }
     }
 
     [RelayCommand]
     public void ToggleControls()
     {
         ShowControls = !ShowControls;
+        if (ShowControls)
+        {
+            ResetHideTimer();
+        }
+        else
+        {
+            _hideTimer?.Dispose();
+            _hideTimer = null;
+        }
     }
 
     [RelayCommand]
@@ -260,6 +284,7 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
         _aspectIndex = (_aspectIndex + 1) % _aspects.Length;
         CurrentAspect = _aspects[_aspectIndex];
         _playerService.SetAspect(CurrentAspect);
+        ResetHideTimer();
     }
 
     [RelayCommand]
@@ -275,6 +300,7 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
             IsFullscreen = !IsFullscreen;
             _platformService.SetFullscreen(IsFullscreen);
         }
+        ResetHideTimer();
     }
 
     partial void OnVolumeChanged(double value)
@@ -323,17 +349,45 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
 
     public void ResetHideTimer()
     {
-        ShowControls = true;
+        _hideTimer?.Dispose();
+        _hideTimer = null;
+
+        if (IsSidebarOpen)
+        {
+            ShowControls = true;
+            return;
+        }
+
+        if (ShowControls)
+        {
+            _hideTimer = new Timer(_ =>
+            {
+                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                {
+                    if (!IsSidebarOpen)
+                    {
+                        ShowControls = false;
+                    }
+                });
+            }, null, 4000, Timeout.Infinite);
+        }
     }
 
     public void Dispose()
     {
+        _hideTimer?.Dispose();
+        _hideTimer = null;
+
         _playerService.OnPlayStateChanged -= HandlePlayStateChanged;
         _playerService.OnPositionChanged -= HandlePositionChanged;
         _playerService.OnDurationChanged -= HandleDurationChanged;
 
+        _platformService.SetFullscreen(false);
+        IsFullscreen = false;
+
         if (IsLandscape)
         {
+            IsLandscape = false;
             _platformService.SetOrientation(false);
         }
         _playerService.Stop();

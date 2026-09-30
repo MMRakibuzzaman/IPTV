@@ -28,6 +28,8 @@ public class PlayerService : IPlayerService
             Core.Initialize();
             _libVLC = new LibVLC();
             _mediaPlayer = new MediaPlayer(_libVLC);
+            _mediaPlayer.EnableMouseInput = false;
+            _mediaPlayer.EnableKeyInput = false;
 
             _mediaPlayer.Playing += (s, e) => NotifyPlayState(true);
             _mediaPlayer.Paused += (s, e) => NotifyPlayState(false);
