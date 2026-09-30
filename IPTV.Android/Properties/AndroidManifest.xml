@@ -1,5 +1,12 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" android:installLocation="auto">
 	<uses-permission android:name="android.permission.INTERNET" />
-	<application android:label="IPTV" android:icon="@drawable/Icon" />
+	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+	<!-- Storage permissions for file picker (Android < 13) -->
+	<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+	<!-- Granular media permissions (Android 13+) -->
+	<uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+	<uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+	<application android:label="IPTV" android:icon="@drawable/Icon"
+	             android:requestLegacyExternalStorage="true" />
 </manifest>

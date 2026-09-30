@@ -73,6 +73,13 @@ public class DefaultPlatformService : IPlatformService
         {
             return TopLevel.GetTopLevel(singleView.MainView);
         }
+        else if (Application.Current?.ApplicationLifetime is IActivityApplicationLifetime activityLifetime)
+        {
+            // Avalonia 12.x Android uses IActivityApplicationLifetime
+            // which doesn't directly expose the MainView, so fall back
+            // to searching the visual tree
+            return null;
+        }
         return null;
     }
 }

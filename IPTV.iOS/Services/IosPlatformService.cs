@@ -6,37 +6,60 @@ using UIKit;
 
 namespace IPTV.iOS.Services;
 
-public class IosPlatformService : IPlatformService
+public class IosPlatformService : DefaultPlatformService
 {
-    public async Task<string?> PickFileAsync()
+    public override async Task<string?> PickFileAsync()
     {
-        var topLevel = TopLevel.GetTopLevel(null);
-        if (topLevel?.StorageProvider != null)
+        try
         {
-            var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+            var topLevel = GetCurrentTopLevel();
+            if (topLevel?.StorageProvider != null)
             {
-                Title = "Select M3U Playlist File",
-                AllowMultiple = false,
-                FileTypeFilter = new[]
+                var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
                 {
-                    new FilePickerFileType("M3U Playlist (*.m3u;*.m3u8)")
+                    Title = "Select M3U Playlist File",
+                    AllowMultiple = false,
+                    FileTypeFilter = new[]
                     {
-                        Patterns = new[] { "*.m3u", "*.m3u8" }
-                    },
-                    FilePickerFileTypes.All
-                }
-            });
+                        new FilePickerFileType("M3U Playlist (*.m3u;*.m3u8)")
+                        {
+                            Patterns = new[] { "*.m3u", "*.m3u8" },
+                            MimeTypes = new[] { "audio/x-mpegurl", "application/vnd.apple.mpegurl" }
+                        },
+                        FilePickerFileTypes.All
+                    }
+                });
 
-            if (files != null && files.Count > 0)
-            {
-                return files[0].Path.LocalPath;
+                if (files != null && files.Count > 0)
+                {
+                    var file = files[0];
+
+                    // On iOS, the file URI may not be directly accessible.
+                    // Read via stream and copy to local app storage.
+                    await using var stream = await file.OpenReadAsync();
+                    using var reader = new StreamReader(stream);
+                    var content = await reader.ReadToEndAsync();
+
+                    var localDir = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                        "IPTV", "imports");
+                    Directory.CreateDirectory(localDir);
+
+                    var localPath = Path.Combine(localDir, file.Name);
+                    await File.WriteAllTextAsync(localPath, content);
+                    return localPath;
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[IosPlatformService] PickFileAsync error: {ex}");
         }
 
         return null;
     }
 
-    public void SetOrientation(bool isLandscape)
+    public override void SetOrientation(bool isLandscape)
     {
         UIApplication.SharedApplication.InvokeOnMainThread(() =>
         {
@@ -67,7 +90,7 @@ public class IosPlatformService : IPlatformService
         });
     }
 
-    public void SetFullscreen(bool isFullscreen)
+    public override void SetFullscreen(bool isFullscreen)
     {
         UIApplication.SharedApplication.InvokeOnMainThread(() =>
         {
@@ -75,5 +98,5 @@ public class IosPlatformService : IPlatformService
         });
     }
 
-    public bool CanChangeOrientation => true;
+    public override bool CanChangeOrientation => true;
 }

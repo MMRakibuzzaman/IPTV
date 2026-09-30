@@ -4,7 +4,6 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:IPTV.ViewModels"
              xmlns:models="using:IPTV.Models"
-             xmlns:vlc="clr-namespace:LibVLCSharp.Avalonia;assembly=LibVLCSharp.Avalonia"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="600"
              x:Class="IPTV.Views.PlayerView"
              x:DataType="vm:PlayerViewModel"
@@ -85,15 +84,40 @@
         </Style>
     </UserControl.Styles>
 
-    <Grid RowDefinitions="Auto, *, Auto">
+    <Grid Background="Black">
         
-        <!-- 1. Top Bar: Back Button, Title, and Hamburger Menu Button -->
-        <Border Grid.Row="0"
-                Background="#12121A"
-                BorderBrush="#222230"
+        <!-- 1. Video Surface (Base Layer, Full Screen) -->
+        <ContentControl x:Name="VideoContainer" 
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch"
+                        HorizontalContentAlignment="Stretch"
+                        VerticalContentAlignment="Stretch" />
+
+        <!-- 2. Transparent Toggle Controls Overlay (Middle Layer) -->
+        <Button Background="Transparent"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                Command="{Binding ToggleControlsCommand}"
+                CornerRadius="0"
+                BorderThickness="0">
+            <Button.Styles>
+                <Style Selector="Button:pointerover /template/ ContentPresenter">
+                    <Setter Property="Background" Value="Transparent"/>
+                </Style>
+                <Style Selector="Button:pressed /template/ ContentPresenter">
+                    <Setter Property="Background" Value="Transparent"/>
+                </Style>
+            </Button.Styles>
+        </Button>
+
+        <!-- 3. Top Bar: Back Button & Title (Floating Top) -->
+        <Border VerticalAlignment="Top"
+                Background="#CC12121A"
+                BorderBrush="#40222230"
                 BorderThickness="0,0,0,1"
                 Padding="16,8"
-                IsVisible="{Binding ShowControls}">
+                IsVisible="{Binding ShowControls}"
+                Margin="0,0,70,0">
             <Grid ColumnDefinitions="Auto, *, Auto" VerticalAlignment="Center">
                 
                 <!-- Left: Back Button -->
@@ -122,132 +146,29 @@
                                FontSize="11"
                                HorizontalAlignment="Center" />
                 </StackPanel>
-
-                <!-- Right: Hamburger Menu / Channel Sidebar Button -->
-                <Button Grid.Column="2"
-                        Classes="player-btn"
-                        Command="{Binding ToggleSidebarCommand}"
-                        ToolTip.Tip="Open Channel List (☰)">
-                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                        <Viewbox Width="16" Height="16">
-                            <Path Data="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"
-                                  Fill="White" Stretch="Uniform" />
-                        </Viewbox>
-                        <TextBlock Text="Channels" FontSize="13" Foreground="White" VerticalAlignment="Center" />
-                    </StackPanel>
-                </Button>
             </Grid>
         </Border>
 
-        <!-- 2. Middle Row: Video Engine + Channel Sidebar -->
-        <Grid Grid.Row="1" ColumnDefinitions="*, Auto" Background="Black">
-            
-            <!-- Video Surface -->
-            <vlc:VideoView Grid.Column="0"
-                           MediaPlayer="{Binding MediaPlayer}"
-                           HorizontalAlignment="Stretch"
-                           VerticalAlignment="Stretch" />
+        <!-- 4. Hamburger Menu (Floating Top Right) -->
+        <Button HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Margin="12"
+                Width="44" Height="44"
+                Classes="player-btn"
+                Background="#66000000"
+                BorderThickness="0"
+                Command="{Binding ToggleSidebarCommand}"
+                ToolTip.Tip="Open Channel List (☰)">
+            <Viewbox Width="22" Height="22">
+                <Path Data="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"
+                      Fill="White" Stretch="Uniform" />
+            </Viewbox>
+        </Button>
 
-            <!-- Channels Sidebar (Docked to the right) -->
-            <Border Grid.Column="1"
-                    Width="320"
-                    Background="#14141E"
-                    BorderBrush="#252535"
-                    BorderThickness="1,0,0,0"
-                    IsVisible="{Binding IsSidebarOpen}">
-                <Grid RowDefinitions="Auto, *">
-                    
-                    <!-- Sidebar Header with Search & Close -->
-                    <StackPanel Grid.Row="0" Margin="14" Spacing="10">
-                        <Grid ColumnDefinitions="*, Auto">
-                            <TextBlock Grid.Column="0"
-                                       Text="{Binding PlaylistTitle}"
-                                       FontSize="15"
-                                       FontWeight="Bold"
-                                       Foreground="White"
-                                       VerticalAlignment="Center" />
-                            
-                            <Button Grid.Column="1"
-                                    Classes="player-btn"
-                                    Width="30" Height="30"
-                                    Padding="0"
-                                    Command="{Binding ToggleSidebarCommand}"
-                                    ToolTip.Tip="Close Sidebar">
-                                <TextBlock Text="✕" FontSize="13" Foreground="#9CA3AF" />
-                            </Button>
-                        </Grid>
-
-                        <!-- Search Box -->
-                        <TextBox Text="{Binding SearchQuery, Mode=TwoWay}"
-                                 PlaceholderText="Search channels..."
-                                 CornerRadius="8"
-                                 Height="36"
-                                 Padding="10,6"
-                                 Background="#1B1B27"
-                                 BorderBrush="#2E2E42"
-                                 Foreground="White">
-                            <TextBox.InnerRightContent>
-                                <Button Command="{Binding ClearSearchCommand}"
-                                        IsVisible="{Binding SearchQuery, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                                        Background="Transparent"
-                                        BorderThickness="0"
-                                        Padding="4"
-                                        Margin="0,0,4,0"
-                                        VerticalAlignment="Center">
-                                    <TextBlock Text="✕" FontSize="12" Foreground="#9CA3AF" />
-                                </Button>
-                            </TextBox.InnerRightContent>
-                        </TextBox>
-                    </StackPanel>
-
-                    <!-- Channels and Categories List -->
-                    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
-                        <ItemsControl ItemsSource="{Binding VisibleSidebarItems}" Margin="10,0,10,16">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:SidebarItemViewModel">
-                                    <Panel>
-                                        <!-- Group Header -->
-                                        <Button Classes="channel-btn"
-                                                IsVisible="{Binding IsHeader}"
-                                                Command="{Binding $parent[UserControl].((vm:PlayerViewModel)DataContext).ToggleGroupCommand}"
-                                                CommandParameter="{Binding Name}"
-                                                Background="#1C1C28"
-                                                Margin="0,4,0,2">
-                                            <Grid ColumnDefinitions="*, Auto" Width="270">
-                                                <TextBlock Grid.Column="0" Text="{Binding Name}" 
-                                                           FontWeight="SemiBold" FontSize="13" Foreground="#818CF8" />
-                                                <TextBlock Grid.Column="1" Text="▼" 
-                                                           FontSize="10" Foreground="#818CF8" />
-                                            </Grid>
-                                        </Button>
-
-                                        <!-- Channel Item -->
-                                        <Button Classes="channel-btn"
-                                                IsVisible="{Binding !IsHeader}"
-                                                Command="{Binding $parent[UserControl].((vm:PlayerViewModel)DataContext).PlayChannelCommand}"
-                                                CommandParameter="{Binding Channel}">
-                                            <Grid ColumnDefinitions="Auto, *">
-                                                <Border Grid.Column="0" Width="3" Height="14" CornerRadius="2" Background="#6366F1" Margin="0,0,8,0" IsVisible="{Binding IsActive}" />
-                                                <TextBlock Grid.Column="1" Text="{Binding Channel.Name, FallbackValue=''}" 
-                                                           FontSize="13" 
-                                                           Foreground="White"
-                                                           TextTrimming="CharacterEllipsis"
-                                                           VerticalAlignment="Center" />
-                                            </Grid>
-                                        </Button>
-                                    </Panel>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
-                </Grid>
-            </Border>
-        </Grid>
-
-        <!-- 3. Bottom Player Controls Bar -->
-        <Border Grid.Row="2"
-                Background="#12121A"
-                BorderBrush="#222230"
+        <!-- 5. Bottom Player Controls Bar (Floating Bottom) -->
+        <Border VerticalAlignment="Bottom"
+                Background="#CC12121A"
+                BorderBrush="#40222230"
                 BorderThickness="0,1,0,0"
                 Padding="20,10"
                 IsVisible="{Binding ShowControls}">
@@ -370,6 +291,102 @@
                     </StackPanel>
                 </Grid>
             </StackPanel>
+        </Border>
+
+        <!-- 6. Channels Sidebar (Docked to the right) -->
+        <Border HorizontalAlignment="Right"
+                VerticalAlignment="Stretch"
+                Width="320"
+                Background="#F214141E"
+                BorderBrush="#252535"
+                BorderThickness="1,0,0,0"
+                IsVisible="{Binding IsSidebarOpen}">
+            <Grid RowDefinitions="Auto, *">
+                
+                <!-- Sidebar Header with Search & Close -->
+                <StackPanel Grid.Row="0" Margin="14" Spacing="10">
+                    <Grid ColumnDefinitions="*, Auto">
+                        <TextBlock Grid.Column="0"
+                                   Text="{Binding PlaylistTitle}"
+                                   FontSize="15"
+                                   FontWeight="Bold"
+                                   Foreground="White"
+                                   VerticalAlignment="Center" />
+                        
+                        <Button Grid.Column="1"
+                                Classes="player-btn"
+                                Width="30" Height="30"
+                                Padding="0"
+                                Command="{Binding ToggleSidebarCommand}"
+                                ToolTip.Tip="Close Sidebar">
+                            <TextBlock Text="✕" FontSize="13" Foreground="#9CA3AF" />
+                        </Button>
+                    </Grid>
+
+                    <!-- Search Box -->
+                    <TextBox Text="{Binding SearchQuery, Mode=TwoWay}"
+                             PlaceholderText="Search channels..."
+                             CornerRadius="8"
+                             Height="36"
+                             Padding="10,6"
+                             Background="#1B1B27"
+                             BorderBrush="#2E2E42"
+                             Foreground="White">
+                        <TextBox.InnerRightContent>
+                            <Button Command="{Binding ClearSearchCommand}"
+                                    IsVisible="{Binding SearchQuery, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="4"
+                                    Margin="0,0,4,0"
+                                    VerticalAlignment="Center">
+                                <TextBlock Text="✕" FontSize="12" Foreground="#9CA3AF" />
+                            </Button>
+                        </TextBox.InnerRightContent>
+                    </TextBox>
+                </StackPanel>
+
+                <!-- Channels and Categories List -->
+                <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl ItemsSource="{Binding VisibleSidebarItems}" Margin="10,0,10,16">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:SidebarItemViewModel">
+                                <Panel>
+                                    <!-- Group Header -->
+                                    <Button Classes="channel-btn"
+                                            IsVisible="{Binding IsHeader}"
+                                            Command="{Binding $parent[UserControl].((vm:PlayerViewModel)DataContext).ToggleGroupCommand}"
+                                            CommandParameter="{Binding Name}"
+                                            Background="#1C1C28"
+                                            Margin="0,4,0,2">
+                                        <Grid ColumnDefinitions="*, Auto" Width="270">
+                                            <TextBlock Grid.Column="0" Text="{Binding Name}" 
+                                                       FontWeight="SemiBold" FontSize="13" Foreground="#818CF8" />
+                                            <TextBlock Grid.Column="1" Text="▼" 
+                                                       FontSize="10" Foreground="#818CF8" />
+                                        </Grid>
+                                    </Button>
+
+                                    <!-- Channel Item -->
+                                    <Button Classes="channel-btn"
+                                            IsVisible="{Binding !IsHeader}"
+                                            Command="{Binding $parent[UserControl].((vm:PlayerViewModel)DataContext).PlayChannelCommand}"
+                                            CommandParameter="{Binding Channel}">
+                                        <Grid ColumnDefinitions="Auto, *">
+                                            <Border Grid.Column="0" Width="3" Height="14" CornerRadius="2" Background="#6366F1" Margin="0,0,8,0" IsVisible="{Binding IsActive}" />
+                                            <TextBlock Grid.Column="1" Text="{Binding Channel.Name, FallbackValue=''}" 
+                                                       FontSize="13" 
+                                                       Foreground="White"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       VerticalAlignment="Center" />
+                                        </Grid>
+                                    </Button>
+                                </Panel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
         </Border>
 
     </Grid>
