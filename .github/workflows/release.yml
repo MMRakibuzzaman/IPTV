@@ -35,7 +35,19 @@ jobs:
       - name: Publish Desktop
         run: dotnet publish IPTV.Desktop/IPTV.Desktop.csproj -c Release -r ${{ matrix.rid }} --self-contained true -p:PublishSingleFile=true -o publish-desktop
         
-      - name: Upload Desktop Artifact
+      - name: Create Windows Installer
+        if: matrix.os == 'windows-latest'
+        run: iscc installer.iss
+        
+      - name: Upload Windows Artifact
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: IPTV-win-x64-Installer
+          path: Output/IPTV_Setup_Windows.exe
+
+      - name: Upload Mac/Linux Artifact
+        if: matrix.os != 'windows-latest'
         uses: actions/upload-artifact@v4
         with:
           name: IPTV-${{ matrix.rid }}
