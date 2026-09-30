@@ -117,6 +117,7 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
         _pointerHook = _platformService.InstallPlayerPointerHook(
             () => IsSidebarOpen,
             () => ShowControls,
+            () => IsFullscreen,
             () =>
             {
                 if (!ShowControls)
@@ -305,6 +306,12 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     public void ToggleControls()
     {
+        if (!IsFullscreen)
+        {
+            ShowControls = true;
+            return;
+        }
+
         ShowControls = !ShowControls;
         if (ShowControls)
         {
@@ -353,6 +360,20 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     {
         _playerService.SetPosition(TimeSpan.FromSeconds(seconds));
         ResetHideTimer();
+    }
+
+    partial void OnIsFullscreenChanged(bool value)
+    {
+        if (value)
+        {
+            ResetHideTimer();
+        }
+        else
+        {
+            _hideTimer?.Dispose();
+            _hideTimer = null;
+            ShowControls = true;
+        }
     }
 
     [RelayCommand]
@@ -425,6 +446,13 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
         _hideTimer?.Dispose();
         _hideTimer = null;
 
+        // Never hide controls when not in fullscreen!
+        if (!IsFullscreen)
+        {
+            ShowControls = true;
+            return;
+        }
+
         if (IsSidebarOpen)
         {
             ShowControls = true;
@@ -437,7 +465,7 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
             {
                 Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                 {
-                    if (!IsSidebarOpen)
+                    if (IsFullscreen && !IsSidebarOpen)
                     {
                         ShowControls = false;
                     }

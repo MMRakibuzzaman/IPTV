@@ -67,6 +67,7 @@ public class WindowsMouseHook : IDisposable
 
     private readonly Func<bool> _isSidebarOpen;
     private readonly Func<bool> _areControlsShowing;
+    private readonly Func<bool> _isFullscreen;
     private readonly Action _onPointerMoved;
     private readonly Action _onVideoClicked;
     private readonly Action _onChannelsClicked;
@@ -77,12 +78,14 @@ public class WindowsMouseHook : IDisposable
     public WindowsMouseHook(
         Func<bool> isSidebarOpen,
         Func<bool> areControlsShowing,
+        Func<bool> isFullscreen,
         Action onPointerMoved,
         Action onVideoClicked,
         Action onChannelsClicked)
     {
         _isSidebarOpen = isSidebarOpen;
         _areControlsShowing = areControlsShowing;
+        _isFullscreen = isFullscreen;
         _onPointerMoved = onPointerMoved;
         _onVideoClicked = onVideoClicked;
         _onChannelsClicked = onChannelsClicked;
@@ -168,6 +171,13 @@ public class WindowsMouseHook : IDisposable
         // Is pointer within window client bounds?
         if (dipX < 0 || dipX > dipWidth || dipY < 0 || dipY > dipHeight)
             return;
+
+        // Hide logic and click-to-toggle overlay are strictly for fullscreen mode only!
+        bool isFullscreen = (_isFullscreen != null && _isFullscreen()) || (window.WindowState == WindowState.FullScreen);
+        if (!isFullscreen)
+        {
+            return;
+        }
 
         bool controlsShowing = _areControlsShowing();
         bool sidebarOpen = _isSidebarOpen();

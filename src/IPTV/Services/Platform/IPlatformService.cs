@@ -10,6 +10,7 @@ public interface IPlatformService
     IDisposable? InstallPlayerPointerHook(
         Func<bool> isSidebarOpen,
         Func<bool> areControlsShowing,
+        Func<bool> isFullscreen,
         Action onPointerMoved,
         Action onVideoClicked,
         Action onChannelsClicked) => null;

@@ -30,13 +30,14 @@ public class DesktopPlatformService : DefaultPlatformService
     public override IDisposable? InstallPlayerPointerHook(
         Func<bool> isSidebarOpen,
         Func<bool> areControlsShowing,
+        Func<bool> isFullscreen,
         Action onPointerMoved,
         Action onVideoClicked,
         Action onChannelsClicked)
     {
         if (OperatingSystem.IsWindows())
         {
-            return new WindowsMouseHook(isSidebarOpen, areControlsShowing, onPointerMoved, onVideoClicked, onChannelsClicked);
+            return new WindowsMouseHook(isSidebarOpen, areControlsShowing, isFullscreen, onPointerMoved, onVideoClicked, onChannelsClicked);
         }
         return null;
     }
