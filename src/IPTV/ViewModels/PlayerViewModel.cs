@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using IPTV.Models;
@@ -237,6 +239,12 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     }
 
     [RelayCommand]
+    public void ClearSearch()
+    {
+        SearchQuery = string.Empty;
+    }
+
+    [RelayCommand]
     public async Task PlayChannelAsync(Channel channel)
     {
         ActiveChannel = channel;
@@ -253,20 +261,23 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
             _playerService.Play(streamToPlay);
         }
 
-        foreach (var item in VisibleSidebarItems)
+        var prevActive = VisibleSidebarItems.FirstOrDefault(i => i.IsActive && i.Channel?.Id != channel.Id);
+        if (prevActive != null)
         {
-            if (!item.IsHeader && item.Channel != null)
-            {
-                item.IsActive = (item.Channel.Id == channel.Id);
-            }
+            prevActive.IsActive = false;
+        }
+
+        var newActive = VisibleSidebarItems.FirstOrDefault(i => i.Channel?.Id == channel.Id);
+        if (newActive != null)
+        {
+            newActive.IsActive = true;
         }
 
         ResetHideTimer();
 
         // Populate initial "Auto" quality immediately
-        AvailableQualities.Clear();
         var autoQuality = new StreamQuality { Name = "Auto", Url = channel.StreamUrl, IsSelected = true };
-        AvailableQualities.Add(autoQuality);
+        AvailableQualities = new ObservableCollection<StreamQuality> { autoQuality };
         SelectedQuality = autoQuality;
 
         // Fetch stream qualities asynchronously in background
@@ -277,13 +288,9 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
             {
                 if (ActiveChannel?.Id == channel.Id)
                 {
-                    AvailableQualities.Clear();
-                    foreach (var q in qualities)
-                    {
-                        AvailableQualities.Add(q);
-                    }
+                    AvailableQualities = new ObservableCollection<StreamQuality>(qualities);
 
-                    var current = AvailableQualities.FirstOrDefault(q => q.Name == SelectedQuality?.Name) 
+                    var current = AvailableQualities.FirstOrDefault(q => q.Url == SelectedQuality?.Url) 
                                ?? AvailableQualities.FirstOrDefault();
                     if (current != null)
                     {
@@ -467,6 +474,23 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
             _isUpdatingPositionFromPlayer = true;
             CurrentPositionSeconds = pos.TotalSeconds;
             _isUpdatingPositionFromPlayer = false;
+
+            if (SelectedQuality?.Name != null && SelectedQuality.Name.StartsWith("Auto"))
+            {
+                uint px_w = 0;
+                uint px_h = 0;
+                if (MediaPlayer != null && MediaPlayer.Size(0, ref px_w, ref px_h))
+                {
+                    if (px_h > 0)
+                    {
+                        var newName = $"Auto • {px_h}p";
+                        if (SelectedQuality.Name != newName)
+                        {
+                            SelectedQuality.Name = newName;
+                        }
+                    }
+                }
+            }
         });
     }
 

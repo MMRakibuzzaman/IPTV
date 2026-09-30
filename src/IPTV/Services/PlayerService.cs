@@ -1,3 +1,5 @@
+using System;
+using System.Threading.Tasks;
 using LibVLCSharp.Shared;
 
 namespace IPTV.Services;
@@ -57,19 +59,22 @@ public class PlayerService : IPlayerService
         OnPlayStream?.Invoke(url);
         if (_libVLC != null && _mediaPlayer != null && !string.IsNullOrWhiteSpace(url))
         {
-            try
+            Task.Run(() =>
             {
-                var media = new Media(_libVLC, new Uri(url));
-                if (startPosition.HasValue && startPosition.Value.TotalSeconds > 1)
+                try
                 {
-                    media.AddOption($":start-time={(int)startPosition.Value.TotalSeconds}");
+                    var media = new Media(_libVLC, new Uri(url));
+                    if (startPosition.HasValue && startPosition.Value.TotalSeconds > 1)
+                    {
+                        media.AddOption($":start-time={(int)startPosition.Value.TotalSeconds}");
+                    }
+                    _mediaPlayer.Play(media);
                 }
-                _mediaPlayer.Play(media);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[PlayerService] Error playing stream: {ex.Message}");
-            }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[PlayerService] Error playing stream: {ex.Message}");
+                }
+            });
         }
     }
 

@@ -185,7 +185,19 @@
                                  Padding="10,6"
                                  Background="#1B1B27"
                                  BorderBrush="#2E2E42"
-                                 Foreground="White" />
+                                 Foreground="White">
+                            <TextBox.InnerRightContent>
+                                <Button Command="{Binding ClearSearchCommand}"
+                                        IsVisible="{Binding SearchQuery, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Padding="4"
+                                        Margin="0,0,4,0"
+                                        VerticalAlignment="Center">
+                                    <TextBlock Text="✕" FontSize="12" Foreground="#9CA3AF" />
+                                </Button>
+                            </TextBox.InnerRightContent>
+                        </TextBox>
                     </StackPanel>
 
                     <!-- Channels and Categories List -->

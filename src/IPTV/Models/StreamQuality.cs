@@ -4,7 +4,8 @@ namespace IPTV.Models;
 
 public partial class StreamQuality : ObservableObject
 {
-    public string Name { get; set; } = "Auto";
+    [ObservableProperty]
+    private string _name = "Auto";
     public string Url { get; set; } = string.Empty;
     public int Bandwidth { get; set; }
 
