@@ -27,7 +27,6 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     private readonly IPlatformService _platformService;
 
     private Playlist? _playlist;
-    private Timer? _hideTimer;
     private readonly Dictionary<string, bool> _groupExpandedState = new();
     private readonly string[] _aspects = { "AspectFit", "AspectFill", "Fill" };
     private int _aspectIndex = 0;
@@ -238,35 +237,12 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     public void ToggleSidebar()
     {
         IsSidebarOpen = !IsSidebarOpen;
-        if (IsSidebarOpen)
-        {
-            _hideTimer?.Dispose();
-        }
-        else
-        {
-            ResetHideTimer();
-        }
     }
 
     [RelayCommand]
     public void ToggleControls()
     {
-        if (IsSidebarOpen)
-        {
-            return;
-        }
-
         ShowControls = !ShowControls;
-        IsQualityMenuOpen = false;
-
-        if (ShowControls)
-        {
-            ResetHideTimer();
-        }
-        else
-        {
-            _hideTimer?.Dispose();
-        }
     }
 
     [RelayCommand]
@@ -332,17 +308,7 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
 
     public void ResetHideTimer()
     {
-        _hideTimer?.Dispose();
-        if (ShowControls && !IsSidebarOpen)
-        {
-            _hideTimer = new Timer(_ =>
-            {
-                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-                {
-                    ShowControls = false;
-                });
-            }, null, 4000, Timeout.Infinite);
-        }
+        ShowControls = true;
     }
 
     public void Dispose()
@@ -356,6 +322,5 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
             _platformService.SetOrientation(false);
         }
         _playerService.Stop();
-        _hideTimer?.Dispose();
     }
 }

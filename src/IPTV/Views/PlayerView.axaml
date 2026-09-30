@@ -69,8 +69,7 @@
                 Background="#12121A"
                 BorderBrush="#222230"
                 BorderThickness="0,0,0,1"
-                Padding="16,10"
-                IsVisible="{Binding ShowControls}">
+                Padding="16,10">
             <Grid ColumnDefinitions="Auto, *, Auto" VerticalAlignment="Center">
                 
                 <!-- Left: Back Button -->
@@ -210,8 +209,7 @@
                 Background="#12121A"
                 BorderBrush="#222230"
                 BorderThickness="0,1,0,0"
-                Padding="20,10"
-                IsVisible="{Binding ShowControls}">
+                Padding="20,10">
             <StackPanel Spacing="8">
                 
                 <!-- Seek Slider (only when stream duration is known) -->
