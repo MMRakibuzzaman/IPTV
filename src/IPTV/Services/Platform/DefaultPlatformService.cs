@@ -41,13 +41,16 @@ public class DefaultPlatformService : IPlatformService
 
     public virtual void SetFullscreen(bool isFullscreen)
     {
-        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
-            if (desktop.MainWindow != null)
+            if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
-                desktop.MainWindow.WindowState = isFullscreen ? WindowState.FullScreen : WindowState.Normal;
+                if (desktop.MainWindow != null)
+                {
+                    desktop.MainWindow.WindowState = isFullscreen ? WindowState.FullScreen : WindowState.Normal;
+                }
             }
-        }
+        });
     }
 
     public virtual bool CanChangeOrientation => false;

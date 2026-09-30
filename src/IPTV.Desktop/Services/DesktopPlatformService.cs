@@ -1,53 +1,29 @@
 using Avalonia.Controls;
-using Avalonia.Platform.Storage;
 using IPTV.Services.Platform;
 
 namespace IPTV.Desktop.Services;
 
-public class DesktopPlatformService : IPlatformService
+public class DesktopPlatformService : DefaultPlatformService
 {
-    private readonly Window _window;
+    private readonly Window? _window;
 
-    public DesktopPlatformService(Window window)
+    public DesktopPlatformService(Window? window = null)
     {
         _window = window;
     }
 
-    public async Task<string?> PickFileAsync()
+    public override void SetFullscreen(bool isFullscreen)
     {
-        if (_window.StorageProvider == null) return null;
-
-        var files = await _window.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        if (_window != null)
         {
-            Title = "Select M3U Playlist File",
-            AllowMultiple = false,
-            FileTypeFilter = new[]
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
             {
-                new FilePickerFileType("M3U Playlist (*.m3u;*.m3u8)")
-                {
-                    Patterns = new[] { "*.m3u", "*.m3u8" }
-                },
-                FilePickerFileTypes.All
-            }
-        });
-
-        if (files != null && files.Count > 0)
-        {
-            return files[0].Path.LocalPath;
+                _window.WindowState = isFullscreen ? WindowState.FullScreen : WindowState.Normal;
+            });
         }
-
-        return null;
+        else
+        {
+            base.SetFullscreen(isFullscreen);
+        }
     }
-
-    public void SetOrientation(bool isLandscape)
-    {
-        // Desktop window orientation - on desktop we can resize or adjust window aspect if desired
-    }
-
-    public void SetFullscreen(bool isFullscreen)
-    {
-        _window.WindowState = isFullscreen ? WindowState.FullScreen : WindowState.Normal;
-    }
-
-    public bool CanChangeOrientation => false;
 }

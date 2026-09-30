@@ -9,13 +9,15 @@ using LibVLCSharp.Shared;
 
 namespace IPTV.ViewModels;
 
-public class SidebarItemViewModel : ObservableObject
+public partial class SidebarItemViewModel : ObservableObject
 {
     public bool IsHeader { get; set; }
     public string Name { get; set; } = string.Empty;
     public Channel? Channel { get; set; }
     public bool IsExpanded { get; set; }
-    public bool IsActive { get; set; }
+
+    [ObservableProperty]
+    private bool _isActive;
 }
 
 public partial class PlayerViewModel : ViewModelBase, IDisposable
@@ -28,7 +30,7 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
 
     private Playlist? _playlist;
     private readonly Dictionary<string, bool> _groupExpandedState = new();
-    private readonly string[] _aspects = { "AspectFit", "AspectFill", "Fill" };
+    private readonly string[] _aspects = { "Fit", "16:9", "4:3", "16:10", "21:9" };
     private int _aspectIndex = 0;
 
     public MediaPlayer? MediaPlayer => _playerService.MediaPlayer;
@@ -41,6 +43,9 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
 
     [ObservableProperty]
     private bool _showControls = true;
+
+    [ObservableProperty]
+    private bool _isFullscreen = false;
 
     [ObservableProperty]
     private bool _isPlaying = true;
@@ -58,7 +63,7 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     private bool _isLandscape = false;
 
     [ObservableProperty]
-    private string _currentAspect = "AspectFit";
+    private string _currentAspect = "Fit";
 
     [ObservableProperty]
     private string _searchQuery = string.Empty;
@@ -214,7 +219,13 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
             _playerService.Play(streamToPlay);
         }
 
-        UpdateVisibleItems();
+        foreach (var item in VisibleSidebarItems)
+        {
+            if (!item.IsHeader && item.Channel != null)
+            {
+                item.IsActive = (item.Channel.Id == channel.Id);
+            }
+        }
     }
 
     [RelayCommand]
@@ -223,14 +234,12 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
         SelectedQuality = quality;
         IsQualityMenuOpen = false;
         _playerService.Play(quality.Url);
-        ResetHideTimer();
     }
 
     [RelayCommand]
     public void TogglePlayPause()
     {
         _playerService.TogglePlayPause();
-        ResetHideTimer();
     }
 
     [RelayCommand]
@@ -251,15 +260,21 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
         _aspectIndex = (_aspectIndex + 1) % _aspects.Length;
         CurrentAspect = _aspects[_aspectIndex];
         _playerService.SetAspect(CurrentAspect);
-        ResetHideTimer();
     }
 
     [RelayCommand]
     public void ToggleOrientation()
     {
-        IsLandscape = !IsLandscape;
-        _platformService.SetOrientation(IsLandscape);
-        ResetHideTimer();
+        if (_platformService.CanChangeOrientation)
+        {
+            IsLandscape = !IsLandscape;
+            _platformService.SetOrientation(IsLandscape);
+        }
+        else
+        {
+            IsFullscreen = !IsFullscreen;
+            _platformService.SetFullscreen(IsFullscreen);
+        }
     }
 
     partial void OnVolumeChanged(double value)

@@ -10,7 +10,10 @@ sealed class Program
     [STAThread]
     public static void Main(string[] args)
     {
-        App.ConfigureServices();
+        App.ConfigureServices(services =>
+        {
+            services.AddSingleton<IPlatformService, Services.DesktopPlatformService>();
+        });
 
         BuildAvaloniaApp()
             .StartWithClassicDesktopLifetime(args);

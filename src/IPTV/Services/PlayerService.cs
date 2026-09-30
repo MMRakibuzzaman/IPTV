@@ -94,12 +94,21 @@ public class PlayerService : IPlayerService
         OnSetAspect?.Invoke(aspect);
         if (_mediaPlayer != null)
         {
-            _mediaPlayer.AspectRatio = aspect switch
+            try
             {
-                "AspectFill" => "16:9",
-                "Fill" => "fill",
-                _ => null
-            };
+                _mediaPlayer.AspectRatio = aspect switch
+                {
+                    "16:9" => "16:9",
+                    "4:3" => "4:3",
+                    "16:10" => "16:10",
+                    "21:9" => "21:9",
+                    _ => null
+                };
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[PlayerService] Error setting aspect: {ex.Message}");
+            }
         }
     }
 
