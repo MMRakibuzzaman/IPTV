@@ -46,12 +46,74 @@ jobs:
           name: IPTV-win-x64-Installer
           path: Output/IPTV_Setup_Windows.exe
 
-      - name: Upload Mac/Linux Artifact
-        if: matrix.os != 'windows-latest'
+      - name: Create Linux .deb Package
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          mkdir -p deb-package/usr/bin
+          mkdir -p deb-package/usr/share/applications
+          mkdir -p deb-package/DEBIAN
+          cp publish-desktop/IPTV.Desktop deb-package/usr/bin/iptv-player
+          chmod +x deb-package/usr/bin/iptv-player
+          cat << 'EOF' > deb-package/DEBIAN/control
+          Package: iptv-player
+          Version: 1.0.0
+          Section: base
+          Priority: optional
+          Architecture: amd64
+          Maintainer: IPTV Developer
+          Description: A modern, cross-platform IPTV player
+          EOF
+          cat << 'EOF' > deb-package/usr/share/applications/iptv-player.desktop
+          [Desktop Entry]
+          Name=IPTV Player
+          Exec=iptv-player
+          Type=Application
+          Categories=AudioVideo;Player;
+          EOF
+          dpkg-deb --build deb-package IPTV_Player_Linux.deb
+
+      - name: Create macOS .dmg Package
+        if: matrix.os == 'macos-latest'
+        run: |
+          mkdir -p "IPTV Player.app/Contents/MacOS"
+          mkdir -p "IPTV Player.app/Contents/Resources"
+          cp -r publish-desktop/* "IPTV Player.app/Contents/MacOS/"
+          chmod +x "IPTV Player.app/Contents/MacOS/IPTV.Desktop"
+          cat << 'EOF' > "IPTV Player.app/Contents/Info.plist"
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleName</key>
+              <string>IPTV Player</string>
+              <key>CFBundleDisplayName</key>
+              <string>IPTV Player</string>
+              <key>CFBundleIdentifier</key>
+              <string>com.iptv.player</string>
+              <key>CFBundleVersion</key>
+              <string>1.0.0</string>
+              <key>CFBundlePackageType</key>
+              <string>APPL</string>
+              <key>CFBundleExecutable</key>
+              <string>IPTV.Desktop</string>
+          </dict>
+          </plist>
+          EOF
+          hdiutil create -volname "IPTV Player" -srcfolder "IPTV Player.app" -ov -format UDZO IPTV_Player_macOS.dmg
+
+      - name: Upload Linux Artifact
+        if: matrix.os == 'ubuntu-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: IPTV-${{ matrix.rid }}
-          path: publish-desktop/*
+          name: IPTV-linux-x64-deb
+          path: IPTV_Player_Linux.deb
+
+      - name: Upload macOS Artifact
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: IPTV-osx-x64-dmg
+          path: IPTV_Player_macOS.dmg
 
   build-android:
     name: Build Android APK
