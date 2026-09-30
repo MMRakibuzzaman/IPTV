@@ -59,6 +59,21 @@
             <Setter Property="Focusable" Value="False" />
             <Setter Property="Transitions" Value="{x:Null}" />
         </Style>
+
+        <!-- Quality Item Button Style -->
+        <Style Selector="Button.quality-item-btn">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#E5E7EB" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Focusable" Value="False" />
+        </Style>
+        <Style Selector="Button.quality-item-btn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#252538" />
+        </Style>
         <Style Selector="Button.channel-btn:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="#222232" />
         </Style>
@@ -277,25 +292,36 @@
                     <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                         
                         <!-- Quality Picker -->
-                        <Button Classes="player-btn"
+                        <Button x:Name="QualityButton"
+                                Classes="player-btn"
                                 Height="34"
                                 ToolTip.Tip="Stream Quality">
                             <TextBlock Text="{Binding SelectedQuality.Name, FallbackValue='Auto'}" 
                                        FontSize="11" FontWeight="Bold" Foreground="White" />
                             <Button.Flyout>
-                                <MenuFlyout ItemsSource="{Binding AvailableQualities}">
-                                    <MenuFlyout.ItemTemplate>
-                                        <DataTemplate x:DataType="models:StreamQuality">
-                                            <MenuItem Header="{Binding Name}"
-                                                      Click="OnQualityMenuItemClick">
-                                                <MenuItem.Icon>
-                                                    <TextBlock Text="✓" Foreground="#818CF8" FontWeight="Bold" FontSize="11"
-                                                               IsVisible="{Binding IsSelected}" VerticalAlignment="Center" />
-                                                </MenuItem.Icon>
-                                            </MenuItem>
-                                        </DataTemplate>
-                                    </MenuFlyout.ItemTemplate>
-                                </MenuFlyout>
+                                <Flyout Placement="Top">
+                                    <Border Background="#161622"
+                                            BorderBrush="#2E2E42"
+                                            BorderThickness="1"
+                                            CornerRadius="8"
+                                            Padding="4"
+                                            MinWidth="130">
+                                        <ItemsControl ItemsSource="{Binding AvailableQualities}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="models:StreamQuality">
+                                                    <Button Classes="quality-item-btn"
+                                                            Click="OnQualityItemClick">
+                                                        <Grid ColumnDefinitions="20, *">
+                                                            <TextBlock Grid.Column="0" Text="✓" Foreground="#818CF8" FontWeight="Bold" FontSize="11"
+                                                                       IsVisible="{Binding IsSelected}" VerticalAlignment="Center" />
+                                                            <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12" Foreground="White" VerticalAlignment="Center" />
+                                                        </Grid>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Border>
+                                </Flyout>
                             </Button.Flyout>
                         </Button>
 

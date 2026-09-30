@@ -242,15 +242,12 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
         ActiveChannel = channel;
         IsQualityMenuOpen = false;
 
-        var qualities = await _hlsParserService.GetAvailableQualitiesAsync(channel.StreamUrl);
-        AvailableQualities = new ObservableCollection<StreamQuality>(qualities);
-        SelectedQuality = qualities.FirstOrDefault();
-        if (SelectedQuality != null)
-        {
-            SelectedQuality.IsSelected = true;
-        }
+        DurationSeconds = 0;
+        CurrentPositionSeconds = 0;
+        CurrentPositionText = "00:00";
+        DurationText = "00:00";
 
-        var streamToPlay = SelectedQuality?.Url ?? channel.StreamUrl;
+        var streamToPlay = channel.StreamUrl;
         if (!string.IsNullOrWhiteSpace(streamToPlay))
         {
             _playerService.Play(streamToPlay);
@@ -265,6 +262,37 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
         }
 
         ResetHideTimer();
+
+        // Populate initial "Auto" quality immediately
+        AvailableQualities.Clear();
+        var autoQuality = new StreamQuality { Name = "Auto", Url = channel.StreamUrl, IsSelected = true };
+        AvailableQualities.Add(autoQuality);
+        SelectedQuality = autoQuality;
+
+        // Fetch stream qualities asynchronously in background
+        _ = Task.Run(async () =>
+        {
+            var qualities = await _hlsParserService.GetAvailableQualitiesAsync(channel.StreamUrl);
+            await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (ActiveChannel?.Id == channel.Id)
+                {
+                    AvailableQualities.Clear();
+                    foreach (var q in qualities)
+                    {
+                        AvailableQualities.Add(q);
+                    }
+
+                    var current = AvailableQualities.FirstOrDefault(q => q.Name == SelectedQuality?.Name) 
+                               ?? AvailableQualities.FirstOrDefault();
+                    if (current != null)
+                    {
+                        current.IsSelected = true;
+                        SelectedQuality = current;
+                    }
+                }
+            });
+        });
     }
 
     [RelayCommand]

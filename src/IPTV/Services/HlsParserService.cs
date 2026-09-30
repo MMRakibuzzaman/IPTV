@@ -33,7 +33,7 @@ public class HlsParserService : IHlsParserService
 
         try
         {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             var response = await _httpClient.GetAsync(masterUrl, HttpCompletionOption.ResponseHeadersRead, cts.Token);
             if (!response.IsSuccessStatusCode)
             {
