@@ -17,13 +17,15 @@ public partial class PlayerView : UserControl
     {
         InitializeComponent();
         Focusable = true;
+        DataContextChanged += (_, _) => CreateVideoSurface();
+        Loaded += (_, _) => CreateVideoSurface();
         CreateVideoSurface();
     }
 
     /// <summary>
     /// Creates the platform-appropriate video surface.
     /// LibVLCSharp.Avalonia.VideoView only supports desktop (Windows/Linux/macOS).
-    /// On Android/iOS it crashes because Attach() doesn't handle those platforms.
+    /// On Android/iOS it uses platform-specific NativeControlHost embedding.
     /// </summary>
     private void CreateVideoSurface()
     {
@@ -34,6 +36,12 @@ public partial class PlayerView : UserControl
             
             if (platformService != null && vm != null && vm.MediaPlayer != null)
             {
+                // If a NativeControlHost is already set, do not re-create
+                if (VideoContainer.Content is NativeControlHost)
+                {
+                    return;
+                }
+
                 var view = platformService.CreateVideoView(vm.MediaPlayer);
                 if (view != null)
                 {
@@ -44,37 +52,40 @@ public partial class PlayerView : UserControl
                 }
             }
 
-            // Fallback: Audio Mode if platform doesn't provide a native video view
-            var panel = new Panel
+            // Only show Audio Mode fallback if DataContext has been initialized but no native video view was provided
+            if (vm != null && VideoContainer.Content == null)
             {
-                Background = Brushes.Black,
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-                VerticalAlignment = VerticalAlignment.Stretch
-            };
+                var panel = new Panel
+                {
+                    Background = Brushes.Black,
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    VerticalAlignment = VerticalAlignment.Stretch
+                };
 
-            var icon = new TextBlock
-            {
-                Text = "🎵",
-                FontSize = 48,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-                Foreground = new SolidColorBrush(Color.Parse("#6366F1")),
-                Opacity = 0.7
-            };
+                var icon = new TextBlock
+                {
+                    Text = "🎵",
+                    FontSize = 48,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Foreground = new SolidColorBrush(Color.Parse("#6366F1")),
+                    Opacity = 0.7
+                };
 
-            var label = new TextBlock
-            {
-                Text = "Audio Mode",
-                FontSize = 14,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-                Foreground = new SolidColorBrush(Color.Parse("#9CA3AF")),
-                Margin = new Thickness(0, 60, 0, 0)
-            };
+                var label = new TextBlock
+                {
+                    Text = "Audio Mode",
+                    FontSize = 14,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Foreground = new SolidColorBrush(Color.Parse("#9CA3AF")),
+                    Margin = new Thickness(0, 60, 0, 0)
+                };
 
-            panel.Children.Add(icon);
-            panel.Children.Add(label);
-            VideoContainer.Content = panel;
+                panel.Children.Add(icon);
+                panel.Children.Add(label);
+                VideoContainer.Content = panel;
+            }
         }
         else
         {

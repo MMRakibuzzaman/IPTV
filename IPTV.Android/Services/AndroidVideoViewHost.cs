@@ -10,21 +10,26 @@ namespace IPTV.Android.Services;
 public class AndroidVideoViewHost : NativeControlHost
 {
     private readonly MediaPlayer _mediaPlayer;
+    private readonly global::Android.App.Activity _activity;
     private LibVLCSharp.Platforms.Android.VideoView? _videoView;
 
-    public AndroidVideoViewHost(MediaPlayer mediaPlayer)
+    public AndroidVideoViewHost(MediaPlayer mediaPlayer, global::Android.App.Activity activity)
     {
         _mediaPlayer = mediaPlayer;
+        _activity = activity;
     }
 
     protected override IPlatformHandle CreateNativeControlCore(IPlatformHandle parent)
     {
         try
         {
-            var context = (parent as AndroidViewControlHandle)?.View.Context 
-                ?? global::Android.App.Application.Context;
+            var context = (parent as AndroidViewControlHandle)?.View.Context ?? _activity;
 
-            _videoView = new LibVLCSharp.Platforms.Android.VideoView(context);
+            _videoView = new LibVLCSharp.Platforms.Android.VideoView(context)
+            {
+                Clickable = false,
+                Focusable = false
+            };
             _videoView.MediaPlayer = _mediaPlayer;
 
             return new AndroidViewControlHandle(_videoView);
@@ -33,7 +38,7 @@ public class AndroidVideoViewHost : NativeControlHost
         {
             System.Diagnostics.Debug.WriteLine($"[AndroidVideoViewHost] Error creating native control: {ex}");
             // Return an empty view if failed
-            return new AndroidViewControlHandle(new global::Android.Views.View(global::Android.App.Application.Context));
+            return new AndroidViewControlHandle(new global::Android.Views.View(_activity));
         }
     }
 

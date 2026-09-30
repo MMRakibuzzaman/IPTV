@@ -11,9 +11,14 @@ namespace IPTV.Android.Services;
 
 public class AndroidPlatformService : DefaultPlatformService
 {
-    private readonly Activity _activity;
+    private Activity _activity;
 
     public AndroidPlatformService(Activity activity)
+    {
+        _activity = activity;
+    }
+
+    public void UpdateActivity(Activity activity)
     {
         _activity = activity;
     }
@@ -22,9 +27,9 @@ public class AndroidPlatformService : DefaultPlatformService
     {
         try
         {
-            // Try Avalonia's StorageProvider first (works when we can get a TopLevel)
+            // 1. Try Avalonia's StorageProvider first (cross-platform, handles SAF properly)
             var topLevel = GetCurrentTopLevel();
-            if (topLevel?.StorageProvider != null)
+            if (topLevel?.StorageProvider != null && topLevel.StorageProvider.CanOpen)
             {
                 var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
                 {
@@ -32,75 +37,91 @@ public class AndroidPlatformService : DefaultPlatformService
                     AllowMultiple = false,
                     FileTypeFilter = new[]
                     {
-                        new FilePickerFileType("M3U Playlist (*.m3u;*.m3u8)")
+                        FilePickerFileTypes.All,
+                        new FilePickerFileType("Playlist (*.m3u;*.m3u8)")
                         {
                             Patterns = new[] { "*.m3u", "*.m3u8" },
-                            MimeTypes = new[] { "audio/x-mpegurl", "application/vnd.apple.mpegurl", "audio/mpegurl" }
-                        },
-                        FilePickerFileTypes.All
+                            MimeTypes = new[] { "*/*" }
+                        }
                     }
                 });
 
                 if (files != null && files.Count > 0)
                 {
                     var file = files[0];
-
-                    // On Android, content:// URIs can't be read by File.ReadAllText.
-                    // Copy the file content to local storage.
                     await using var stream = await file.OpenReadAsync();
-                    using var reader = new StreamReader(stream);
-                    var content = await reader.ReadToEndAsync();
+
+                    var fileName = file.Name;
+                    if (string.IsNullOrWhiteSpace(fileName))
+                    {
+                        fileName = "playlist.m3u";
+                    }
 
                     var localDir = Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "IPTV", "imports");
+                        Environment.GetFolderPath(Environment.SpecialFolder.Personal), "imports");
                     Directory.CreateDirectory(localDir);
 
-                    var localPath = Path.Combine(localDir, file.Name);
-                    await File.WriteAllTextAsync(localPath, content);
+                    var localPath = Path.Combine(localDir, Path.GetFileName(fileName));
+                    await using (var outputStream = File.Create(localPath))
+                    {
+                        await stream.CopyToAsync(outputStream);
+                    }
                     return localPath;
                 }
-            }
-            else
-            {
-                // Fallback: Use Android's native ACTION_OPEN_DOCUMENT intent
-                return await PickFileViaIntentAsync();
+
+                // If user cancelled selection via Avalonia picker
+                return null;
             }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[AndroidPlatformService] PickFileAsync error: {ex}");
+            System.Diagnostics.Debug.WriteLine($"[AndroidPlatformService] StorageProvider OpenFilePickerAsync error: {ex}");
         }
 
-        return null;
+        // 2. Fallback: Use Android's native intent chooser
+        return await PickFileViaIntentAsync();
     }
 
     private Task<string?> PickFileViaIntentAsync()
     {
         var tcs = new TaskCompletionSource<string?>();
 
-        try
+        _activity.RunOnUiThread(() =>
         {
-            var intent = new Intent(Intent.ActionOpenDocument);
-            intent.AddCategory(Intent.CategoryOpenable);
-            // On some Android devices, specifying ExtraMimeTypes can cause the intent to fail to find a handler.
-            // Using a broad */* type ensures the file picker always opens.
-            intent.SetType("*/*");
+            try
+            {
+                if (_activity is FilePickerActivity pickerActivity)
+                {
+                    pickerActivity.SetPendingResult(tcs);
 
-            if (_activity is FilePickerActivity pickerActivity)
-            {
-                pickerActivity.SetPendingResult(tcs);
-                _activity.StartActivityForResult(intent, FilePickerActivity.PickFileRequestCode);
+                    Intent intent;
+                    try
+                    {
+                        intent = new Intent(Intent.ActionGetContent);
+                        intent.SetType("*/*");
+                        intent.AddCategory(Intent.CategoryOpenable);
+                    }
+                    catch
+                    {
+                        intent = new Intent(Intent.ActionOpenDocument);
+                        intent.SetType("*/*");
+                        intent.AddCategory(Intent.CategoryOpenable);
+                    }
+
+                    var chooser = Intent.CreateChooser(intent, "Select M3U Playlist");
+                    _activity.StartActivityForResult(chooser, FilePickerActivity.PickFileRequestCode);
+                }
+                else
+                {
+                    tcs.TrySetResult(null);
+                }
             }
-            else
+            catch (Exception ex)
             {
-                tcs.SetResult(null);
+                System.Diagnostics.Debug.WriteLine($"[AndroidPlatformService] Intent picker error: {ex}");
+                tcs.TrySetResult(null);
             }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[AndroidPlatformService] Intent picker error: {ex}");
-            tcs.SetResult(null);
-        }
+        });
 
         return tcs.Task;
     }
@@ -109,9 +130,11 @@ public class AndroidPlatformService : DefaultPlatformService
     {
         _activity.RunOnUiThread(() =>
         {
+            // Use ScreenOrientation.Landscape / Portrait to force orientation change
+            // even if system auto-rotate is toggled off by the user.
             _activity.RequestedOrientation = isLandscape 
-                ? ScreenOrientation.SensorLandscape 
-                : ScreenOrientation.SensorPortrait;
+                ? ScreenOrientation.Landscape 
+                : ScreenOrientation.Portrait;
         });
     }
 
@@ -119,13 +142,32 @@ public class AndroidPlatformService : DefaultPlatformService
     {
         _activity.RunOnUiThread(() =>
         {
-            if (isFullscreen)
+            if (OperatingSystem.IsAndroidVersionAtLeast(30))
             {
-                _activity.Window?.AddFlags(global::Android.Views.WindowManagerFlags.Fullscreen);
+                var controller = _activity.Window?.InsetsController;
+                if (controller != null)
+                {
+                    if (isFullscreen)
+                    {
+                        controller.Hide(global::Android.Views.WindowInsets.Type.StatusBars() | global::Android.Views.WindowInsets.Type.NavigationBars());
+                        controller.SystemBarsBehavior = (int)global::Android.Views.WindowInsetsControllerBehavior.ShowTransientBarsBySwipe;
+                    }
+                    else
+                    {
+                        controller.Show(global::Android.Views.WindowInsets.Type.StatusBars() | global::Android.Views.WindowInsets.Type.NavigationBars());
+                    }
+                }
             }
             else
             {
-                _activity.Window?.ClearFlags(global::Android.Views.WindowManagerFlags.Fullscreen);
+                if (isFullscreen)
+                {
+                    _activity.Window?.AddFlags(global::Android.Views.WindowManagerFlags.Fullscreen);
+                }
+                else
+                {
+                    _activity.Window?.ClearFlags(global::Android.Views.WindowManagerFlags.Fullscreen);
+                }
             }
         });
     }
@@ -136,7 +178,7 @@ public class AndroidPlatformService : DefaultPlatformService
     {
         if (mediaPlayer is LibVLCSharp.Shared.MediaPlayer mp)
         {
-            return new AndroidVideoViewHost(mp);
+            return new AndroidVideoViewHost(mp, _activity);
         }
         return null;
     }

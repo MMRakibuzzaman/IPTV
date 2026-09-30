@@ -383,7 +383,9 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
         if (_platformService.CanChangeOrientation)
         {
             IsLandscape = !IsLandscape;
+            IsFullscreen = IsLandscape;
             _platformService.SetOrientation(IsLandscape);
+            _platformService.SetFullscreen(IsLandscape);
         }
         else
         {

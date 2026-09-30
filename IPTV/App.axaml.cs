@@ -13,6 +13,7 @@ namespace IPTV;
 public partial class App : Application
 {
     public static IServiceProvider? Services { get; private set; }
+    public static Avalonia.Controls.Control? CurrentMainView { get; set; }
 
     public static void ConfigureServices(Action<IServiceCollection>? configurePlatform = null)
     {
@@ -63,14 +64,18 @@ public partial class App : Application
         }
         else if (ApplicationLifetime is IActivityApplicationLifetime singleViewFactoryApplicationLifetime)
         {
-            singleViewFactoryApplicationLifetime.MainViewFactory = () => new MainView { DataContext = mainVm };
+            singleViewFactoryApplicationLifetime.MainViewFactory = () =>
+            {
+                var view = new MainView { DataContext = mainVm };
+                CurrentMainView = view;
+                return view;
+            };
         }
         else if (ApplicationLifetime is ISingleViewApplicationLifetime singleViewPlatform)
         {
-            singleViewPlatform.MainView = new MainView
-            {
-                DataContext = mainVm
-            };
+            var view = new MainView { DataContext = mainVm };
+            singleViewPlatform.MainView = view;
+            CurrentMainView = view;
         }
 
         base.OnFrameworkInitializationCompleted();

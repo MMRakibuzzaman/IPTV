@@ -27,7 +27,7 @@ public interface FilePickerActivity
     ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize | ConfigChanges.UiMode)]
 public class MainActivity : AvaloniaMainActivity, FilePickerActivity
 {
-    private TaskCompletionSource<string?>? _pendingFilePick;
+    private static TaskCompletionSource<string?>? _pendingFilePick;
 
     protected override void OnCreate(Bundle? savedInstanceState)
     {
@@ -37,6 +37,15 @@ public class MainActivity : AvaloniaMainActivity, FilePickerActivity
         });
 
         base.OnCreate(savedInstanceState);
+    }
+
+    protected override void OnResume()
+    {
+        base.OnResume();
+        if (App.Services?.GetService(typeof(IPlatformService)) is AndroidPlatformService androidService)
+        {
+            androidService.UpdateActivity(this);
+        }
     }
 
     public void SetPendingResult(TaskCompletionSource<string?> tcs)
@@ -59,15 +68,10 @@ public class MainActivity : AvaloniaMainActivity, FilePickerActivity
             {
                 try
                 {
-                    // Read content from the content:// URI and save to local storage
                     var uri = data.Data;
                     using var inputStream = ContentResolver?.OpenInputStream(uri);
                     if (inputStream != null)
                     {
-                        using var reader = new System.IO.StreamReader(inputStream);
-                        var content = reader.ReadToEnd();
-
-                        // Extract filename from URI or use a default
                         var fileName = GetFileName(uri) ?? "playlist.m3u";
 
                         var localDir = System.IO.Path.Combine(
@@ -75,25 +79,28 @@ public class MainActivity : AvaloniaMainActivity, FilePickerActivity
                             "imports");
                         System.IO.Directory.CreateDirectory(localDir);
 
-                        var localPath = System.IO.Path.Combine(localDir, fileName);
-                        System.IO.File.WriteAllText(localPath, content);
+                        var localPath = System.IO.Path.Combine(localDir, System.IO.Path.GetFileName(fileName));
+                        using (var fileStream = System.IO.File.Create(localPath))
+                        {
+                            inputStream.CopyTo(fileStream);
+                        }
 
-                        tcs.SetResult(localPath);
+                        tcs.TrySetResult(localPath);
                     }
                     else
                     {
-                        tcs.SetResult(null);
+                        tcs.TrySetResult(null);
                     }
                 }
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"[MainActivity] File pick error: {ex}");
-                    tcs.SetResult(null);
+                    tcs.TrySetResult(null);
                 }
             }
             else
             {
-                tcs.SetResult(null);
+                tcs.TrySetResult(null);
             }
         }
     }
@@ -107,7 +114,7 @@ public class MainActivity : AvaloniaMainActivity, FilePickerActivity
                 using var cursor = ContentResolver.Query(uri, null, null, null, null);
                 if (cursor != null && cursor.MoveToFirst())
                 {
-                    var nameIndex = cursor.GetColumnIndex(global::Android.Provider.OpenableColumns.DisplayName);
+                    var nameIndex = cursor.GetColumnIndex(global::Android.Provider.IOpenableColumns.DisplayName);
                     if (nameIndex >= 0)
                     {
                         return cursor.GetString(nameIndex);
