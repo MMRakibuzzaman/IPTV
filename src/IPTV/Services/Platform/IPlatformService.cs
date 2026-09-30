@@ -6,4 +6,10 @@ public interface IPlatformService
     void SetOrientation(bool isLandscape);
     void SetFullscreen(bool isFullscreen);
     bool CanChangeOrientation { get; }
+
+    IDisposable? InstallPlayerPointerHook(
+        Func<bool> isSidebarOpen,
+        Func<bool> areControlsShowing,
+        Action onPointerMoved,
+        Action onVideoClicked) => null;
 }

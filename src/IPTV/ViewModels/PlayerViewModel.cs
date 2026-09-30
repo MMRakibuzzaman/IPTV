@@ -30,6 +30,7 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
 
     private Playlist? _playlist;
     private Timer? _hideTimer;
+    private IDisposable? _pointerHook;
     private readonly Dictionary<string, bool> _groupExpandedState = new();
     private readonly string[] _aspects = { "Fit", "16:9", "4:3", "16:10", "21:9" };
     private int _aspectIndex = 0;
@@ -103,6 +104,23 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
         _playerService.OnPlayStateChanged += HandlePlayStateChanged;
         _playerService.OnPositionChanged += HandlePositionChanged;
         _playerService.OnDurationChanged += HandleDurationChanged;
+
+        _pointerHook = _platformService.InstallPlayerPointerHook(
+            () => IsSidebarOpen,
+            () => ShowControls,
+            () =>
+            {
+                if (!ShowControls)
+                {
+                    ShowControls = true;
+                }
+                ResetHideTimer();
+            },
+            () =>
+            {
+                ToggleControls();
+            }
+        );
 
         _ = InitializePlaylistAsync(playlistId);
     }
@@ -375,6 +393,9 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
 
     public void Dispose()
     {
+        _pointerHook?.Dispose();
+        _pointerHook = null;
+
         _hideTimer?.Dispose();
         _hideTimer = null;
 

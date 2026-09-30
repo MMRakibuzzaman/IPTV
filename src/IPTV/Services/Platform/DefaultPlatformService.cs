@@ -55,6 +55,12 @@ public class DefaultPlatformService : IPlatformService
 
     public virtual bool CanChangeOrientation => false;
 
+    public virtual IDisposable? InstallPlayerPointerHook(
+        Func<bool> isSidebarOpen,
+        Func<bool> areControlsShowing,
+        Action onPointerMoved,
+        Action onVideoClicked) => null;
+
     protected static TopLevel? GetCurrentTopLevel()
     {
         if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)

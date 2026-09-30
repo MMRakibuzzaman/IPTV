@@ -26,4 +26,17 @@ public class DesktopPlatformService : DefaultPlatformService
             base.SetFullscreen(isFullscreen);
         }
     }
+
+    public override IDisposable? InstallPlayerPointerHook(
+        Func<bool> isSidebarOpen,
+        Func<bool> areControlsShowing,
+        Action onPointerMoved,
+        Action onVideoClicked)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return new WindowsMouseHook(isSidebarOpen, areControlsShowing, onPointerMoved, onVideoClicked);
+        }
+        return null;
+    }
 }
