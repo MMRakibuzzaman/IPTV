@@ -280,15 +280,19 @@
                         <Button Classes="player-btn"
                                 Height="34"
                                 ToolTip.Tip="Stream Quality">
-                            <TextBlock Text="{Binding SelectedQuality.Name, FallbackValue='HD'}" 
+                            <TextBlock Text="{Binding SelectedQuality.Name, FallbackValue='Auto'}" 
                                        FontSize="11" FontWeight="Bold" Foreground="White" />
                             <Button.Flyout>
                                 <MenuFlyout ItemsSource="{Binding AvailableQualities}">
                                     <MenuFlyout.ItemTemplate>
                                         <DataTemplate x:DataType="models:StreamQuality">
                                             <MenuItem Header="{Binding Name}"
-                                                      Command="{Binding $parent[UserControl].((vm:PlayerViewModel)DataContext).SelectQualityCommand}"
-                                                      CommandParameter="{Binding .}" />
+                                                      Click="OnQualityMenuItemClick">
+                                                <MenuItem.Icon>
+                                                    <TextBlock Text="✓" Foreground="#818CF8" FontWeight="Bold" FontSize="11"
+                                                               IsVisible="{Binding IsSelected}" VerticalAlignment="Center" />
+                                                </MenuItem.Icon>
+                                            </MenuItem>
                                         </DataTemplate>
                                     </MenuFlyout.ItemTemplate>
                                 </MenuFlyout>

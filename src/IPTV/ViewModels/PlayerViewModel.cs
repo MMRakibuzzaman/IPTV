@@ -245,6 +245,10 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
         var qualities = await _hlsParserService.GetAvailableQualitiesAsync(channel.StreamUrl);
         AvailableQualities = new ObservableCollection<StreamQuality>(qualities);
         SelectedQuality = qualities.FirstOrDefault();
+        if (SelectedQuality != null)
+        {
+            SelectedQuality.IsSelected = true;
+        }
 
         var streamToPlay = SelectedQuality?.Url ?? channel.StreamUrl;
         if (!string.IsNullOrWhiteSpace(streamToPlay))
@@ -268,6 +272,11 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     {
         SelectedQuality = quality;
         IsQualityMenuOpen = false;
+
+        foreach (var q in AvailableQualities)
+        {
+            q.IsSelected = (q == quality || (q.Name == quality.Name && q.Url == quality.Url));
+        }
 
         TimeSpan? resumePos = null;
         if (DurationSeconds > 0 && CurrentPositionSeconds > 1)

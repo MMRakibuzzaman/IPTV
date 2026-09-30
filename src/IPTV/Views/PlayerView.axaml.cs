@@ -37,4 +37,12 @@ public partial class PlayerView : UserControl
             }
         }
     }
+
+    private void OnQualityMenuItemClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (sender is MenuItem menuItem && menuItem.DataContext is IPTV.Models.StreamQuality quality && DataContext is PlayerViewModel vm)
+        {
+            vm.SelectQuality(quality);
+        }
+    }
 }
