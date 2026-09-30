@@ -9,7 +9,6 @@ namespace IPTV.Desktop.Services;
 public class WindowsMouseHook : IDisposable
 {
     private const int WH_MOUSE_LL = 14;
-    private const int WM_MOUSEMOVE = 0x0200;
     private const int WM_LBUTTONDOWN = 0x0201;
     private const uint GA_ROOT = 2;
 
@@ -74,9 +73,6 @@ public class WindowsMouseHook : IDisposable
 
     private readonly LowLevelMouseProc _proc;
     private IntPtr _hookId = IntPtr.Zero;
-    private long _lastClickTime = 0;
-    private int _wakeX = -1;
-    private int _wakeY = -1;
 
     public WindowsMouseHook(
         Func<bool> isSidebarOpen,
@@ -113,7 +109,7 @@ public class WindowsMouseHook : IDisposable
         if (nCode >= 0 && lParam != IntPtr.Zero)
         {
             var msg = wParam.ToInt32();
-            if (msg == WM_MOUSEMOVE || msg == WM_LBUTTONDOWN)
+            if (msg == WM_LBUTTONDOWN)
             {
                 try
                 {
@@ -122,7 +118,7 @@ public class WindowsMouseHook : IDisposable
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"[WindowsMouseHook] Error processing mouse event: {ex.Message}");
+                    Debug.WriteLine($"[WindowsMouseHook] Error processing mouse click: {ex.Message}");
                 }
             }
         }
@@ -176,66 +172,37 @@ public class WindowsMouseHook : IDisposable
         bool controlsShowing = _areControlsShowing();
         bool sidebarOpen = _isSidebarOpen();
 
-        // 1. Mouse Move Handling
-        if (msg == WM_MOUSEMOVE)
+        // If sidebar is currently open, clicks on the right sidebar area are handled by the sidebar
+        if (sidebarOpen && dipX >= (dipWidth - 320))
         {
-            // Suppress movement processing for 600ms after a click to avoid click-jitter
-            if (Environment.TickCount64 - _lastClickTime < 600)
-                return;
-
-            if (_wakeX < 0)
-            {
-                _wakeX = screenPt.x;
-                _wakeY = screenPt.y;
-                return;
-            }
-
-            int dx = screenPt.x - _wakeX;
-            int dy = screenPt.y - _wakeY;
-            // Ignore minor mouse jitter (< 20px) to prevent controls popping up unexpectedly
-            if ((dx * dx + dy * dy) < (20 * 20))
-                return;
-
-            _wakeX = screenPt.x;
-            _wakeY = screenPt.y;
-            Avalonia.Threading.Dispatcher.UIThread.Post(_onPointerMoved);
             return;
         }
 
-        // 2. Mouse Click Handling (WM_LBUTTONDOWN)
-        if (msg == WM_LBUTTONDOWN)
+        // If controls are currently showing:
+        // Clicks in top bar (<= 52) and bottom bar (>= dipHeight - 88) are handled directly by Avalonia controls
+        // (Back button, Channels button, Play, Volume, Quality, Aspect, Fullscreen).
+        if (controlsShowing)
         {
-            _lastClickTime = Environment.TickCount64;
-            _wakeX = screenPt.x;
-            _wakeY = screenPt.y;
-
-            // If sidebar is currently open, clicks on the right sidebar area go to the sidebar
-            if (sidebarOpen && dipX >= (dipWidth - 320))
+            if (dipY <= 52 || dipY >= (dipHeight - 88))
             {
                 return;
             }
 
-            // Top-Right Corner (where Channels / Hamburger is located)
-            // Even if controls/title bar are hidden, clicking in this top-right corner opens the channels menu!
-            if (dipY <= 60 && dipX >= (dipWidth - 150))
-            {
-                Avalonia.Threading.Dispatcher.UIThread.Post(_onChannelsClicked);
-                return;
-            }
-
-            // If controls are showing, clicks inside top bar (<= 52) or bottom bar (>= dipHeight - 88)
-            // are allowed through to let buttons and sliders handle their own clicks
-            if (controlsShowing)
-            {
-                if (dipY <= 52 || dipY >= (dipHeight - 88))
-                {
-                    return;
-                }
-            }
-
-            // Otherwise, it is a click on the video area! Toggle controls!
+            // Clicking over the video area while controls are showing hides them!
             Avalonia.Threading.Dispatcher.UIThread.Post(_onVideoClicked);
+            return;
         }
+
+        // If controls are currently HIDDEN:
+        // 1. Tapping in the top-right corner opens the Channels sidebar
+        if (dipY <= 60 && dipX >= (dipWidth - 150))
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(_onChannelsClicked);
+            return;
+        }
+
+        // 2. Tapping anywhere else on the video brings up controls!
+        Avalonia.Threading.Dispatcher.UIThread.Post(_onVideoClicked);
     }
 
     public void Dispose()
