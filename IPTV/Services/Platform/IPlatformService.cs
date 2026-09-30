@@ -14,4 +14,6 @@ public interface IPlatformService
         Action onPointerMoved,
         Action onVideoClicked,
         Action onChannelsClicked) => null;
+
+    Avalonia.Controls.Control? CreateVideoView(object mediaPlayer) => null;
 }

@@ -63,6 +63,8 @@ public class DefaultPlatformService : IPlatformService
         Action onVideoClicked,
         Action onChannelsClicked) => null;
 
+    public virtual Control? CreateVideoView(object mediaPlayer) => null;
+
     protected static TopLevel? GetCurrentTopLevel()
     {
         if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)

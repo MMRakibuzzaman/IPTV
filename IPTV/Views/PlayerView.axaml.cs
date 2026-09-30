@@ -29,9 +29,22 @@ public partial class PlayerView : UserControl
     {
         if (OperatingSystem.IsAndroid() || OperatingSystem.IsIOS())
         {
-            // On mobile, LibVLCSharp.Avalonia.VideoView is not supported.
-            // VLC will still play audio through its default output.
-            // Show a styled panel indicating audio mode.
+            var platformService = IPTV.App.Services?.GetService(typeof(IPTV.Services.Platform.IPlatformService)) as IPTV.Services.Platform.IPlatformService;
+            var vm = DataContext as PlayerViewModel;
+            
+            if (platformService != null && vm != null && vm.MediaPlayer != null)
+            {
+                var view = platformService.CreateVideoView(vm.MediaPlayer);
+                if (view != null)
+                {
+                    view.HorizontalAlignment = HorizontalAlignment.Stretch;
+                    view.VerticalAlignment = VerticalAlignment.Stretch;
+                    VideoContainer.Content = view;
+                    return;
+                }
+            }
+
+            // Fallback: Audio Mode if platform doesn't provide a native video view
             var panel = new Panel
             {
                 Background = Brushes.Black,

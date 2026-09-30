@@ -82,13 +82,9 @@ public class AndroidPlatformService : DefaultPlatformService
         {
             var intent = new Intent(Intent.ActionOpenDocument);
             intent.AddCategory(Intent.CategoryOpenable);
+            // On some Android devices, specifying ExtraMimeTypes can cause the intent to fail to find a handler.
+            // Using a broad */* type ensures the file picker always opens.
             intent.SetType("*/*");
-            intent.PutExtra(Intent.ExtraMimeTypes, new[] {
-                "audio/x-mpegurl", 
-                "application/vnd.apple.mpegurl", 
-                "audio/mpegurl",
-                "application/octet-stream"
-            });
 
             if (_activity is FilePickerActivity pickerActivity)
             {
@@ -97,7 +93,6 @@ public class AndroidPlatformService : DefaultPlatformService
             }
             else
             {
-                // If the Activity doesn't support our callback, resolve with null
                 tcs.SetResult(null);
             }
         }
@@ -115,8 +110,8 @@ public class AndroidPlatformService : DefaultPlatformService
         _activity.RunOnUiThread(() =>
         {
             _activity.RequestedOrientation = isLandscape 
-                ? ScreenOrientation.Landscape 
-                : ScreenOrientation.Unspecified;
+                ? ScreenOrientation.SensorLandscape 
+                : ScreenOrientation.SensorPortrait;
         });
     }
 
@@ -136,4 +131,13 @@ public class AndroidPlatformService : DefaultPlatformService
     }
 
     public override bool CanChangeOrientation => true;
+
+    public override Control? CreateVideoView(object mediaPlayer)
+    {
+        if (mediaPlayer is LibVLCSharp.Shared.MediaPlayer mp)
+        {
+            return new AndroidVideoViewHost(mp);
+        }
+        return null;
+    }
 }

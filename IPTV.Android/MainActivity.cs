@@ -71,8 +71,8 @@ public class MainActivity : AvaloniaMainActivity, FilePickerActivity
                         var fileName = GetFileName(uri) ?? "playlist.m3u";
 
                         var localDir = System.IO.Path.Combine(
-                            System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData),
-                            "IPTV", "imports");
+                            System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal),
+                            "imports");
                         System.IO.Directory.CreateDirectory(localDir);
 
                         var localPath = System.IO.Path.Combine(localDir, fileName);
