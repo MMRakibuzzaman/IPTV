@@ -29,7 +29,10 @@ public partial class App : Application
         configurePlatform?.Invoke(services);
 
         // Fallback default platform service if not registered
-        services.AddSingleton<IPlatformService, DefaultPlatformService>();
+        if (!services.Any(s => s.ServiceType == typeof(IPlatformService)))
+        {
+            services.AddSingleton<IPlatformService, DefaultPlatformService>();
+        }
 
         Services = services.BuildServiceProvider();
     }

@@ -30,6 +30,15 @@ public class WindowsMouseHook : IDisposable
         public IntPtr dwExtraInfo;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RECT
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
     private delegate IntPtr LowLevelMouseProc(int nCode, IntPtr wParam, IntPtr lParam);
 
     [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
@@ -50,6 +59,12 @@ public class WindowsMouseHook : IDisposable
 
     [DllImport("user32.dll")]
     private static extern IntPtr GetAncestor(IntPtr hwnd, uint gaFlags);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
 
     [DllImport("user32.dll")]
     private static extern bool ScreenToClient(IntPtr hWnd, ref POINT lpPoint);
@@ -78,9 +93,13 @@ public class WindowsMouseHook : IDisposable
         _proc = HookCallback;
         try
         {
-            using var curProcess = Process.GetCurrentProcess();
-            using var curModule = curProcess.MainModule;
-            _hookId = SetWindowsHookEx(WH_MOUSE_LL, _proc, GetModuleHandle(curModule?.ModuleName), 0);
+            var hMod = GetModuleHandle(null);
+            _hookId = SetWindowsHookEx(WH_MOUSE_LL, _proc, hMod, 0);
+            if (_hookId == IntPtr.Zero)
+            {
+                var err = Marshal.GetLastWin32Error();
+                Debug.WriteLine($"[WindowsMouseHook] Failed to set hook, error: {err}");
+            }
         }
         catch (Exception ex)
         {
@@ -123,11 +142,19 @@ public class WindowsMouseHook : IDisposable
             return;
 
         var hwnd = platformHandle.Handle;
-        var ptWindow = WindowFromPoint(screenPt);
 
-        // Verify if pointer is over this window or any of its native child controls (e.g. VLC HWND)
-        if (ptWindow != hwnd && GetAncestor(ptWindow, GA_ROOT) != hwnd)
+        var fg = GetForegroundWindow();
+        if (fg != hwnd && GetAncestor(fg, GA_ROOT) != hwnd)
             return;
+
+        if (!GetWindowRect(hwnd, out var winRect))
+            return;
+
+        if (screenPt.x < winRect.Left || screenPt.x > winRect.Right ||
+            screenPt.y < winRect.Top || screenPt.y > winRect.Bottom)
+        {
+            return;
+        }
 
         var clientPt = screenPt;
         if (!ScreenToClient(hwnd, ref clientPt))
