@@ -1,11 +1,11 @@
 <Solution>
-  <Project Path="src/IPTV.Android/IPTV.Android.csproj">
+  <Project Path="IPTV.Android/IPTV.Android.csproj">
     <Deploy />
   </Project>
-  <Project Path="src/IPTV.Browser/IPTV.Browser.csproj" />
-  <Project Path="src/IPTV.Desktop/IPTV.Desktop.csproj" />
-  <Project Path="src/IPTV.iOS/IPTV.iOS.csproj">
+  <Project Path="IPTV.Browser/IPTV.Browser.csproj" />
+  <Project Path="IPTV.Desktop/IPTV.Desktop.csproj" />
+  <Project Path="IPTV.iOS/IPTV.iOS.csproj">
     <Deploy />
   </Project>
-  <Project Path="src/IPTV/IPTV.csproj" />
+  <Project Path="IPTV/IPTV.csproj" />
 </Solution>
