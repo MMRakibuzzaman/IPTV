@@ -6,8 +6,9 @@ namespace IPTV.Services;
 public class HlsParserService : IHlsParserService
 {
     private readonly HttpClient _httpClient;
-    private static readonly Regex ResolutionRegex = new(@"RESOLUTION=(\d+x\d+)", RegexOptions.Compiled);
-    private static readonly Regex BandwidthRegex = new(@"BANDWIDTH=(\d+)", RegexOptions.Compiled);
+    private static readonly Regex ResolutionRegex = new(@"RESOLUTION=(\d+x\d+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex BandwidthRegex = new(@"BANDWIDTH=(\d+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex NameRegex = new(@"NAME=""?([^"",\r\n]+)""?", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     public HlsParserService(HttpClient httpClient)
     {
@@ -40,14 +41,15 @@ public class HlsParserService : IHlsParserService
             }
 
             var content = await response.Content.ReadAsStringAsync(cts.Token);
-            if (string.IsNullOrWhiteSpace(content) || !content.Contains("#EXTM3U"))
+            if (string.IsNullOrWhiteSpace(content) || !content.Contains("#EXTM3U", StringComparison.OrdinalIgnoreCase))
             {
                 return qualities;
             }
 
             var lines = content.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
-            var baseUrl = masterUrl;
+            var effectiveUrl = response.RequestMessage?.RequestUri?.ToString() ?? masterUrl;
+            var baseUrl = effectiveUrl;
             var queryIndex = baseUrl.IndexOf('?');
             if (queryIndex > -1)
             {
@@ -60,30 +62,51 @@ public class HlsParserService : IHlsParserService
                 var line = lines[i].Trim();
                 if (line.StartsWith("#EXT-X-STREAM-INF:", StringComparison.OrdinalIgnoreCase))
                 {
-                    var nextLine = (i + 1 < lines.Length) ? lines[i + 1].Trim() : string.Empty;
-
-                    if (!string.IsNullOrWhiteSpace(nextLine) && !nextLine.StartsWith('#'))
+                    // Scan forward to locate the stream URI (skipping empty lines or comments)
+                    int urlIdx = i + 1;
+                    while (urlIdx < lines.Length && (string.IsNullOrWhiteSpace(lines[urlIdx]) || lines[urlIdx].Trim().StartsWith('#')))
                     {
+                        urlIdx++;
+                    }
+
+                    if (urlIdx < lines.Length)
+                    {
+                        var streamLine = lines[urlIdx].Trim();
                         var resolutionMatch = ResolutionRegex.Match(line);
                         var bandwidthMatch = BandwidthRegex.Match(line);
+                        var nameMatch = NameRegex.Match(line);
 
                         var resolution = resolutionMatch.Success ? resolutionMatch.Groups[1].Value : "Unknown";
                         var bandwidth = bandwidthMatch.Success && int.TryParse(bandwidthMatch.Groups[1].Value, out var bw) ? bw : 0;
 
-                        var streamUrl = nextLine.StartsWith("http", StringComparison.OrdinalIgnoreCase) 
-                            ? nextLine 
-                            : new Uri(new Uri(baseUrl), nextLine).ToString();
+                        var streamUrl = streamLine.StartsWith("http", StringComparison.OrdinalIgnoreCase) 
+                            ? streamLine 
+                            : new Uri(new Uri(baseUrl), streamLine).ToString();
 
-                        if (resolution != "Unknown" || bandwidth > 0)
+                        string name;
+                        if (resolution != "Unknown")
                         {
-                            var name = resolution != "Unknown" ? resolution.Split('x').Last() + "p" : $"{bandwidth / 1000}k";
-                            qualities.Add(new StreamQuality
-                            {
-                                Name = name,
-                                Url = streamUrl,
-                                Bandwidth = bandwidth
-                            });
+                            name = resolution.Split(new[] { 'x', 'X' }).Last() + "p";
                         }
+                        else if (nameMatch.Success)
+                        {
+                            name = nameMatch.Groups[1].Value.Trim();
+                        }
+                        else if (bandwidth > 0)
+                        {
+                            name = $"{bandwidth / 1000}k";
+                        }
+                        else
+                        {
+                            name = $"Stream {qualities.Count}";
+                        }
+
+                        qualities.Add(new StreamQuality
+                        {
+                            Name = name,
+                            Url = streamUrl,
+                            Bandwidth = bandwidth
+                        });
                     }
                 }
             }
