@@ -18,12 +18,6 @@ jobs:
           - os: windows-latest
             rid: win-x64
             ext: .exe
-          - os: ubuntu-latest
-            rid: linux-x64
-            ext: ""
-          - os: macos-latest
-            rid: osx-x64
-            ext: .app
     steps:
       - uses: actions/checkout@v4
       
@@ -46,74 +40,6 @@ jobs:
           name: IPTV-win-x64-Installer
           path: Output/IPTV_Setup_Windows.exe
 
-      - name: Create Linux .deb Package
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          mkdir -p deb-package/usr/bin
-          mkdir -p deb-package/usr/share/applications
-          mkdir -p deb-package/DEBIAN
-          cp publish-desktop/IPTV.Desktop deb-package/usr/bin/iptv-player
-          chmod +x deb-package/usr/bin/iptv-player
-          cat << 'EOF' > deb-package/DEBIAN/control
-          Package: iptv-player
-          Version: 1.0.0
-          Section: base
-          Priority: optional
-          Architecture: amd64
-          Maintainer: IPTV Developer
-          Description: A modern, cross-platform IPTV player
-          EOF
-          cat << 'EOF' > deb-package/usr/share/applications/iptv-player.desktop
-          [Desktop Entry]
-          Name=IPTV Player
-          Exec=iptv-player
-          Type=Application
-          Categories=AudioVideo;Player;
-          EOF
-          dpkg-deb --build deb-package IPTV_Player_Linux.deb
-
-      - name: Create macOS .dmg Package
-        if: matrix.os == 'macos-latest'
-        run: |
-          mkdir -p "IPTV Player.app/Contents/MacOS"
-          mkdir -p "IPTV Player.app/Contents/Resources"
-          cp -r publish-desktop/* "IPTV Player.app/Contents/MacOS/"
-          chmod +x "IPTV Player.app/Contents/MacOS/IPTV.Desktop"
-          cat << 'EOF' > "IPTV Player.app/Contents/Info.plist"
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>CFBundleName</key>
-              <string>IPTV Player</string>
-              <key>CFBundleDisplayName</key>
-              <string>IPTV Player</string>
-              <key>CFBundleIdentifier</key>
-              <string>com.iptv.player</string>
-              <key>CFBundleVersion</key>
-              <string>1.0.0</string>
-              <key>CFBundlePackageType</key>
-              <string>APPL</string>
-              <key>CFBundleExecutable</key>
-              <string>IPTV.Desktop</string>
-          </dict>
-          </plist>
-          EOF
-          hdiutil create -volname "IPTV Player" -srcfolder "IPTV Player.app" -ov -format UDZO IPTV_Player_macOS.dmg
-
-      - name: Upload Linux Artifact
-        if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: IPTV-linux-x64-deb
-          path: IPTV_Player_Linux.deb
-
-      - name: Upload macOS Artifact
-        if: matrix.os == 'macos-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: IPTV-osx-x64-dmg
-          path: IPTV_Player_macOS.dmg
 
   build-android:
     name: Build Android APK
@@ -138,34 +64,9 @@ jobs:
           name: IPTV-Android-APK
           path: publish-android/*-Signed.apk
 
-  build-ios:
-    name: Build iOS
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.0.x'
-          
-      - name: Install .NET Workloads
-        run: dotnet workload install ios
-        
-      - name: Build iOS App
-        run: dotnet build IPTV.iOS/IPTV.iOS.csproj -c Release -f net10.0-ios -p:ValidateXcodeVersion=false
-        
-      # Note: iOS requires provisioning profiles and certificates to create a signed .ipa.
-      # This step just builds the raw .app file.
-      - name: Upload iOS Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: IPTV-iOS
-          path: IPTV.iOS/bin/Release/net10.0-ios/ios-arm64/*.app
-
   release:
     name: Create GitHub Release
-    needs: [build-desktop, build-android, build-ios]
+    needs: [build-desktop, build-android]
     runs-on: ubuntu-latest
     if: always()
     permissions:
