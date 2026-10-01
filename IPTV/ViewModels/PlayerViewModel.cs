@@ -284,11 +284,6 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
             newActive.IsActive = true;
         }
 
-        if (IsFullscreen)
-        {
-            IsSidebarOpen = false;
-        }
-
         ResetHideTimer();
 
         // Populate initial "Auto" quality immediately
@@ -351,8 +346,6 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     public void ToggleSidebar()
     {
         IsSidebarOpen = !IsSidebarOpen;
-        OnPropertyChanged(nameof(ShowDesktopSidebar));
-        OnPropertyChanged(nameof(ShowAndroidSidebar));
         if (IsSidebarOpen)
         {
             ShowControls = true;
@@ -466,6 +459,12 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     {
         OnPropertyChanged(nameof(ShowLandscapeTopBar));
         OnPropertyChanged(nameof(ShowLandscapeBottomBar));
+    }
+
+    partial void OnIsSidebarOpenChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ShowDesktopSidebar));
+        OnPropertyChanged(nameof(ShowAndroidSidebar));
     }
 
     partial void OnIsFullscreenChanged(bool value)
