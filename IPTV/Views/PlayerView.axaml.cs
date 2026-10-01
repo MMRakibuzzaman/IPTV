@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Data;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.VisualTree;
@@ -17,6 +18,10 @@ public partial class PlayerView : UserControl
     {
         InitializeComponent();
         Focusable = true;
+        
+        // Intercept keys during the tunneling phase before children (like Buttons or Focus Navigation) swallow them
+        AddHandler(KeyDownEvent, OnKeyDownTunnel, RoutingStrategies.Tunnel);
+
         DataContextChanged += (_, _) =>
         {
             if (DataContext is PlayerViewModel vm)
@@ -96,7 +101,7 @@ public partial class PlayerView : UserControl
 
                 var icon = new TextBlock
                 {
-                    Text = "🎵",
+                    Text = "??",
                     FontSize = 48,
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center,
@@ -137,9 +142,8 @@ public partial class PlayerView : UserControl
         }
     }
 
-    protected override void OnKeyDown(KeyEventArgs e)
+    private void OnKeyDownTunnel(object? sender, KeyEventArgs e)
     {
-        base.OnKeyDown(e);
         if (DataContext is PlayerViewModel vm)
         {
             if (e.Key == Key.Escape && vm.IsFullscreen)
@@ -195,3 +199,5 @@ public partial class PlayerView : UserControl
         }
     }
 }
+
+
