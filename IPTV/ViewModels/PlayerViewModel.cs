@@ -358,9 +358,15 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
         }
     }
 
+    private long _lastToggleTime = 0;
+
     [RelayCommand]
     public void ToggleControls()
     {
+        var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        if (now - _lastToggleTime < 300) return;
+        _lastToggleTime = now;
+
         if (!IsFullscreen)
         {
             ShowControls = true;

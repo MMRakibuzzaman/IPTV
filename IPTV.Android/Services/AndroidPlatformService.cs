@@ -11,9 +11,9 @@ namespace IPTV.Android.Services;
 
 public class AndroidPlatformService : DefaultPlatformService
 {
-    private Activity _activity;
+    private Activity? _activity;
 
-    public AndroidPlatformService(Activity activity)
+    public AndroidPlatformService(Activity? activity)
     {
         _activity = activity;
     }
@@ -86,6 +86,12 @@ public class AndroidPlatformService : DefaultPlatformService
     {
         var tcs = new TaskCompletionSource<string?>();
 
+        if (_activity == null)
+        {
+            tcs.TrySetResult(null);
+            return tcs.Task;
+        }
+
         _activity.RunOnUiThread(() =>
         {
             try
@@ -128,7 +134,7 @@ public class AndroidPlatformService : DefaultPlatformService
 
     public override void SetOrientation(bool isLandscape)
     {
-        _activity.RunOnUiThread(() =>
+        _activity?.RunOnUiThread(() =>
         {
             // Use ScreenOrientation.SensorLandscape / SensorPortrait to force orientation change
             // even if system auto-rotate is toggled off by the user.
@@ -140,7 +146,7 @@ public class AndroidPlatformService : DefaultPlatformService
 
     public override void SetFullscreen(bool isFullscreen)
     {
-        _activity.RunOnUiThread(() =>
+        _activity?.RunOnUiThread(() =>
         {
             if (OperatingSystem.IsAndroidVersionAtLeast(30))
             {
@@ -176,7 +182,7 @@ public class AndroidPlatformService : DefaultPlatformService
 
     public override Control? CreateVideoView(object mediaPlayer, Action? onVideoTapped = null)
     {
-        if (mediaPlayer is LibVLCSharp.Shared.MediaPlayer mp)
+        if (_activity != null && mediaPlayer is LibVLCSharp.Shared.MediaPlayer mp)
         {
             return new AndroidVideoViewHost(mp, _activity, onVideoTapped);
         }

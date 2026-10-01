@@ -1,7 +1,8 @@
-﻿using Android.App;
+using Android.App;
 using Android.Runtime;
 using Avalonia;
 using Avalonia.Android;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace IPTV.Android
 {
@@ -14,6 +15,11 @@ namespace IPTV.Android
 
         protected override AppBuilder CustomizeAppBuilder(AppBuilder builder)
         {
+            App.ConfigureServices(services =>
+            {
+                services.AddSingleton<IPTV.Services.Platform.IPlatformService>(new IPTV.Android.Services.AndroidPlatformService(null!));
+            });
+
             return base.CustomizeAppBuilder(builder)
             .WithInterFont();
         }

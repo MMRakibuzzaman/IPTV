@@ -31,12 +31,12 @@ public class MainActivity : AvaloniaMainActivity, FilePickerActivity
 
     protected override void OnCreate(Bundle? savedInstanceState)
     {
-        App.ConfigureServices(services =>
-        {
-            services.AddSingleton<IPlatformService>(new AndroidPlatformService(this));
-        });
-
         base.OnCreate(savedInstanceState);
+        
+        if (App.Services?.GetService(typeof(IPlatformService)) is AndroidPlatformService androidService)
+        {
+            androidService.UpdateActivity(this);
+        }
     }
 
     protected override void OnResume()
