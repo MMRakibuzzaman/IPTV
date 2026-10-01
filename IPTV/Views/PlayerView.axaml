@@ -172,13 +172,13 @@
             </Grid>
 
             <!-- Desktop Channels Sidebar -->
-            <Border Grid.Column="1"
+            <Border Grid.Column="0" Grid.ColumnSpan="2"
                     HorizontalAlignment="Right"
                     Width="320"
                     Background="#F214141E"
                     BorderBrush="#252535"
                     BorderThickness="1,0,0,0"
-                    IsVisible="{Binding ShowDesktopSidebar}">
+                    IsVisible="{Binding IsSidebarOpen}">
                 <Grid RowDefinitions="Auto, *">
                     <!-- Sidebar Header with Search & Close -->
                     <StackPanel Grid.Row="0" Margin="14" Spacing="10">
@@ -266,101 +266,7 @@
             </Border>
         </Grid>
 
-        <!-- Android Channels Sidebar (Popup Overlay) -->
-        <Popup IsOpen="{Binding ShowAndroidSidebar}" 
-               Placement="Right"
-               PlacementTarget="{Binding $parent[Window]}"
-               VerticalAlignment="Stretch">
-            <Border Width="320"
-                    Background="#F214141E"
-                    BorderBrush="#252535"
-                    BorderThickness="1,0,0,0">
-                <Grid RowDefinitions="Auto, *">
-                    <!-- Sidebar Header with Search & Close -->
-                    <StackPanel Grid.Row="0" Margin="14" Spacing="10">
-                        <Grid ColumnDefinitions="*, Auto">
-                            <TextBlock Grid.Column="0"
-                                       Text="{Binding PlaylistTitle}"
-                                       FontSize="15"
-                                       FontWeight="Bold"
-                                       Foreground="White"
-                                       VerticalAlignment="Center" />
-                            <Button Grid.Column="1"
-                                    Classes="player-btn"
-                                    Width="30" Height="30"
-                                    Padding="0"
-                                    Command="{Binding ToggleSidebarCommand}"
-                                    ToolTip.Tip="Close Sidebar">
-                                <TextBlock Text="✕" FontSize="13" Foreground="#9CA3AF" />
-                            </Button>
-                        </Grid>
 
-                        <!-- Search Box -->
-                        <TextBox Text="{Binding SearchQuery, Mode=TwoWay}"
-                                 PlaceholderText="Search channels..."
-                                 CornerRadius="8"
-                                 Height="36"
-                                 Padding="10,6"
-                                 Background="#1B1B27"
-                                 BorderBrush="#2E2E42"
-                                 Foreground="White">
-                            <TextBox.InnerRightContent>
-                                <Button Command="{Binding ClearSearchCommand}"
-                                        IsVisible="{Binding SearchQuery, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                                        Background="Transparent"
-                                        BorderThickness="0"
-                                        Padding="4"
-                                        Margin="0,0,4,0"
-                                        VerticalAlignment="Center">
-                                    <TextBlock Text="✕" FontSize="12" Foreground="#9CA3AF" />
-                                </Button>
-                            </TextBox.InnerRightContent>
-                        </TextBox>
-                    </StackPanel>
-
-                    <!-- Channels and Categories List -->
-                    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
-                        <ItemsControl ItemsSource="{Binding VisibleSidebarItems}" Margin="10,0,10,16">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:SidebarItemViewModel">
-                                    <Panel>
-                                        <!-- Group Header -->
-                                        <Button Classes="channel-btn"
-                                                IsVisible="{Binding IsHeader}"
-                                                Command="{Binding $parent[UserControl].((vm:PlayerViewModel)DataContext).ToggleGroupCommand}"
-                                                CommandParameter="{Binding Name}"
-                                                Background="#1C1C28"
-                                                Margin="0,4,0,2">
-                                            <Grid ColumnDefinitions="*, Auto" Width="270">
-                                                <TextBlock Grid.Column="0" Text="{Binding Name}" 
-                                                           FontWeight="SemiBold" FontSize="13" Foreground="#818CF8" />
-                                                <TextBlock Grid.Column="1" Text="▼" 
-                                                           FontSize="10" Foreground="#818CF8" />
-                                            </Grid>
-                                        </Button>
-
-                                        <!-- Channel Item -->
-                                        <Button Classes="channel-btn"
-                                                IsVisible="{Binding !IsHeader}"
-                                                Command="{Binding $parent[UserControl].((vm:PlayerViewModel)DataContext).PlayChannelCommand}"
-                                                CommandParameter="{Binding Channel}">
-                                            <Grid ColumnDefinitions="Auto, *">
-                                                <Border Grid.Column="0" Width="3" Height="14" CornerRadius="2" Background="#6366F1" Margin="0,0,8,0" IsVisible="{Binding IsActive}" />
-                                                <TextBlock Grid.Column="1" Text="{Binding Channel.Name, FallbackValue=''}" 
-                                                           FontSize="13" 
-                                                           Foreground="White"
-                                                           TextTrimming="CharacterEllipsis"
-                                                           VerticalAlignment="Center" />
-                                            </Grid>
-                                        </Button>
-                                    </Panel>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
-                </Grid>
-            </Border>
-        </Popup>
 
         <!-- ============================================================= -->
         <!-- ROW 2: PORTRAIT QUICK ACTION CONTROLS                         -->
@@ -684,3 +590,6 @@
 
     </Grid>
 </UserControl>
+
+
+
