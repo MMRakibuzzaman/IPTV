@@ -142,10 +142,10 @@
         <!-- ============================================================= -->
         <!-- ROW 1: VIDEO SURFACE & SIDEBAR                                -->
         <!-- ============================================================= -->
-        <Grid Grid.Row="1" ColumnDefinitions="*, Auto" Background="Black">
+        <Grid Grid.Row="1" Background="Black">
             
-            <!-- Video Container (Column 0) -->
-            <Grid Grid.Column="0" Background="Black">
+            <!-- Video Container (Underneath) -->
+            <Grid Background="Black">
                 <!-- 1. Native Video Surface -->
                 <ContentControl x:Name="VideoContainer"
                                 HorizontalAlignment="Stretch"
@@ -171,8 +171,8 @@
                 </Button>
             </Grid>
 
-            <!-- Channels Sidebar (Column 1, Landscape / Fullscreen / Desktop) -->
-            <Border Grid.Column="1"
+            <!-- Channels Sidebar (Overlay on the right) -->
+            <Border HorizontalAlignment="Right"
                     Width="320"
                     Background="#F214141E"
                     BorderBrush="#252535"
