@@ -91,7 +91,7 @@
         <!-- ============================================================= -->
         <!-- ROW 0: LANDSCAPE / FULLSCREEN TOP BAR                         -->
         <!-- ============================================================= -->
-        <Border Grid.Row="{Binding TopBarRow}" VerticalAlignment="{Binding TopBarAlignment}"
+        <Border Grid.Row="1" ZIndex="10" VerticalAlignment="Top"
                 Background="#CC12121A"
                 BorderBrush="#40222230"
                 BorderThickness="0,0,0,1"
@@ -481,7 +481,7 @@
         <!-- ============================================================= -->
         <!-- ROW 4: LANDSCAPE / FULLSCREEN BOTTOM BAR                      -->
         <!-- ============================================================= -->
-        <Border Grid.Row="4"
+        <Border Grid.Row="1" ZIndex="10" VerticalAlignment="Bottom"
                 Background="#CC12121A"
                 BorderBrush="#40222230"
                 BorderThickness="0,1,0,0"
