@@ -147,14 +147,39 @@ public partial class PlayerView : UserControl
                 vm.ToggleOrientationCommand.Execute(null);
                 e.Handled = true;
             }
-            else if (e.Key == Key.F11)
+            else if (e.Key == Key.F11 || e.Key == Key.F)
             {
                 vm.ToggleOrientationCommand.Execute(null);
                 e.Handled = true;
             }
-            else if (e.Key == Key.Space)
+            else if (e.Key == Key.Space || e.Key == Key.Enter)
             {
                 vm.TogglePlayPauseCommand.Execute(null);
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Up)
+            {
+                vm.Volume = Math.Min(1.0, vm.Volume + 0.05);
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Down)
+            {
+                vm.Volume = Math.Max(0.0, vm.Volume - 0.05);
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Left)
+            {
+                _ = vm.PlayPreviousChannelAsync();
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Right)
+            {
+                _ = vm.PlayNextChannelAsync();
+                e.Handled = true;
+            }
+            else if (e.Key == Key.M)
+            {
+                vm.Volume = vm.Volume > 0 ? 0.0 : 1.0;
                 e.Handled = true;
             }
         }
