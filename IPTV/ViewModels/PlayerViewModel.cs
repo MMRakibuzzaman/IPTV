@@ -97,6 +97,12 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     private ObservableCollection<SidebarItemViewModel> _visibleSidebarItems = new();
 
     public bool CanChangeOrientation => _platformService.CanChangeOrientation;
+    public bool IsMobile => OperatingSystem.IsAndroid() || OperatingSystem.IsIOS();
+    public bool IsPortraitMode => IsMobile && !IsFullscreen;
+    public bool ShowLandscapeTopBar => !IsPortraitMode && ShowControls;
+    public bool ShowLandscapeBottomBar => !IsPortraitMode && ShowControls;
+    public string GridRowDefinitions => IsPortraitMode ? "Auto, 230, Auto, *, Auto" : "Auto, *, Auto, Auto, Auto";
+
 
     public PlayerViewModel(
         MainViewModel mainViewModel,
@@ -273,6 +279,11 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
             newActive.IsActive = true;
         }
 
+        if (IsFullscreen)
+        {
+            IsSidebarOpen = false;
+        }
+
         ResetHideTimer();
 
         // Populate initial "Auto" quality immediately
@@ -408,8 +419,49 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
         ResetHideTimer();
     }
 
+    [RelayCommand]
+    public async Task PlayNextChannelAsync()
+    {
+        if (_playlist == null || _playlist.Channels.Count == 0 || ActiveChannel == null) return;
+        var idx = _playlist.Channels.FindIndex(c => c.Id == ActiveChannel.Id);
+        if (idx >= 0 && idx + 1 < _playlist.Channels.Count)
+        {
+            await PlayChannelAsync(_playlist.Channels[idx + 1]);
+        }
+        else if (idx >= 0 && _playlist.Channels.Count > 0)
+        {
+            await PlayChannelAsync(_playlist.Channels[0]);
+        }
+    }
+
+    [RelayCommand]
+    public async Task PlayPreviousChannelAsync()
+    {
+        if (_playlist == null || _playlist.Channels.Count == 0 || ActiveChannel == null) return;
+        var idx = _playlist.Channels.FindIndex(c => c.Id == ActiveChannel.Id);
+        if (idx > 0)
+        {
+            await PlayChannelAsync(_playlist.Channels[idx - 1]);
+        }
+        else if (idx == 0 && _playlist.Channels.Count > 0)
+        {
+            await PlayChannelAsync(_playlist.Channels[^1]);
+        }
+    }
+
+    partial void OnShowControlsChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ShowLandscapeTopBar));
+        OnPropertyChanged(nameof(ShowLandscapeBottomBar));
+    }
+
     partial void OnIsFullscreenChanged(bool value)
     {
+        OnPropertyChanged(nameof(IsPortraitMode));
+        OnPropertyChanged(nameof(ShowLandscapeTopBar));
+        OnPropertyChanged(nameof(ShowLandscapeBottomBar));
+        OnPropertyChanged(nameof(GridRowDefinitions));
+
         if (value)
         {
             ResetHideTimer();

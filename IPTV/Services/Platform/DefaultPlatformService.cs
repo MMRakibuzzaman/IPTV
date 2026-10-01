@@ -63,7 +63,7 @@ public class DefaultPlatformService : IPlatformService
         Action onVideoClicked,
         Action onChannelsClicked) => null;
 
-    public virtual Control? CreateVideoView(object mediaPlayer) => null;
+    public virtual Control? CreateVideoView(object mediaPlayer, Action? onVideoTapped = null) => null;
 
     protected static TopLevel? GetCurrentTopLevel()
     {

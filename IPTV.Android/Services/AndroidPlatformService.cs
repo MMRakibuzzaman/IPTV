@@ -174,11 +174,11 @@ public class AndroidPlatformService : DefaultPlatformService
 
     public override bool CanChangeOrientation => true;
 
-    public override Control? CreateVideoView(object mediaPlayer)
+    public override Control? CreateVideoView(object mediaPlayer, Action? onVideoTapped = null)
     {
         if (mediaPlayer is LibVLCSharp.Shared.MediaPlayer mp)
         {
-            return new AndroidVideoViewHost(mp, _activity);
+            return new AndroidVideoViewHost(mp, _activity, onVideoTapped);
         }
         return null;
     }
