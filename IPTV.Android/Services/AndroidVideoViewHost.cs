@@ -41,13 +41,16 @@ public class AndroidVideoViewHost : NativeControlHost
 
             _videoView.LayoutChange += (s, e) =>
             {
-                for (int i = 0; i < _videoView.ChildCount; i++)
+                if (_videoView is global::Android.Views.ViewGroup vg)
                 {
-                    var child = _videoView.GetChildAt(i);
-                    if (child is global::Android.Views.SurfaceView sv)
+                    for (int i = 0; i < vg.ChildCount; i++)
                     {
-                        sv.SetZOrderOnTop(false);
-                        sv.SetZOrderMediaOverlay(false);
+                        var child = vg.GetChildAt(i);
+                        if (child is global::Android.Views.SurfaceView sv)
+                        {
+                            sv.SetZOrderOnTop(false);
+                            sv.SetZOrderMediaOverlay(false);
+                        }
                     }
                 }
             };
