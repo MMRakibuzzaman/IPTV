@@ -109,7 +109,7 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     public bool IsPortraitMode => IsMobile && !IsFullscreen;
     public bool ShowLandscapeTopBar => !IsPortraitMode && ShowControls;
     public bool ShowLandscapeBottomBar => !IsPortraitMode && ShowControls;
-    public string GridRowDefinitions => IsPortraitMode ? "Auto, 230, Auto, *, Auto" : "0, *, 0, 0, 0";
+    public Avalonia.Controls.RowDefinitions GridRowDefinitions => IsPortraitMode ? Avalonia.Controls.RowDefinitions.Parse("Auto, 230, Auto, *, Auto") : Avalonia.Controls.RowDefinitions.Parse("0, *, 0, 0, 0");
     public int TopBarRow => IsPortraitMode ? 0 : 1;
     public int BottomBarRow => IsPortraitMode ? 2 : 1;
     public Avalonia.Layout.VerticalAlignment TopBarAlignment => IsPortraitMode ? Avalonia.Layout.VerticalAlignment.Center : Avalonia.Layout.VerticalAlignment.Top;
@@ -684,6 +684,7 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
         _playerService.Stop();
     }
 }
+
 
 
 

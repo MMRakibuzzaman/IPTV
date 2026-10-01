@@ -53,7 +53,7 @@ public partial class PlayerView : UserControl
 
     private void UpdateGridRows(PlayerViewModel vm)
     {
-        RootGrid.RowDefinitions = RowDefinitions.Parse(vm.GridRowDefinitions);
+        RootGrid.RowDefinitions = vm.GridRowDefinitions;
     }
 
     /// <summary>
@@ -199,5 +199,6 @@ public partial class PlayerView : UserControl
         }
     }
 }
+
 
 
