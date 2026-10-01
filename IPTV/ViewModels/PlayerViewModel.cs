@@ -39,6 +39,8 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
 
     public MediaPlayer? MediaPlayer => _playerService.MediaPlayer;
 
+    public int SidebarGridColumn => OperatingSystem.IsWindows() ? 1 : 0;
+
     [ObservableProperty]
     private string _playlistTitle = "Channels";
 

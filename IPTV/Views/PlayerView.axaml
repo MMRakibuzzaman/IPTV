@@ -142,7 +142,7 @@
         <!-- ============================================================= -->
         <!-- ROW 1: VIDEO SURFACE & SIDEBAR                                -->
         <!-- ============================================================= -->
-        <Grid Grid.Row="1" Background="Black">
+        <Grid Grid.Row="1" ColumnDefinitions="*, Auto" Background="Black">
             
             <!-- Video Container (Underneath) -->
             <Grid Background="Black">
@@ -171,8 +171,9 @@
                 </Button>
             </Grid>
 
-            <!-- Channels Sidebar (Overlay on the right) -->
-            <Border HorizontalAlignment="Right"
+            <!-- Channels Sidebar -->
+            <Border Grid.Column="{Binding SidebarGridColumn}"
+                    HorizontalAlignment="Right"
                     Width="320"
                     Background="#F214141E"
                     BorderBrush="#252535"
