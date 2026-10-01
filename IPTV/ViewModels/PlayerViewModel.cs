@@ -41,6 +41,9 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
 
     public int SidebarGridColumn => OperatingSystem.IsWindows() ? 1 : 0;
 
+    public bool ShowDesktopSidebar => OperatingSystem.IsWindows() && IsSidebarOpen;
+    public bool ShowAndroidSidebar => !OperatingSystem.IsWindows() && IsSidebarOpen;
+
     [ObservableProperty]
     private string _playlistTitle = "Channels";
 
@@ -348,6 +351,8 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     public void ToggleSidebar()
     {
         IsSidebarOpen = !IsSidebarOpen;
+        OnPropertyChanged(nameof(ShowDesktopSidebar));
+        OnPropertyChanged(nameof(ShowAndroidSidebar));
         if (IsSidebarOpen)
         {
             ShowControls = true;
