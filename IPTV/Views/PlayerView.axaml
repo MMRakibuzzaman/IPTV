@@ -334,7 +334,7 @@
                         <TextBlock Text="{Binding SelectedQuality.Name, FallbackValue='Auto'}" 
                                    FontSize="10" FontWeight="Bold" Foreground="White" />
                         <Button.Flyout>
-                            <Flyout Placement="Top">
+                            <Flyout Placement="Bottom">
                                 <Border Background="#161622"
                                         BorderBrush="#2E2E42"
                                         BorderThickness="1"
