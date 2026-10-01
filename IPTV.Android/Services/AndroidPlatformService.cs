@@ -130,11 +130,11 @@ public class AndroidPlatformService : DefaultPlatformService
     {
         _activity.RunOnUiThread(() =>
         {
-            // Use ScreenOrientation.Landscape / Portrait to force orientation change
+            // Use ScreenOrientation.SensorLandscape / SensorPortrait to force orientation change
             // even if system auto-rotate is toggled off by the user.
             _activity.RequestedOrientation = isLandscape 
-                ? ScreenOrientation.Landscape 
-                : ScreenOrientation.Portrait;
+                ? ScreenOrientation.SensorLandscape 
+                : ScreenOrientation.SensorPortrait;
         });
     }
 

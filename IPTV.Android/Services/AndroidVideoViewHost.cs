@@ -36,7 +36,7 @@ public class AndroidVideoViewHost : NativeControlHost
 
             if (_onTapped != null)
             {
-                _videoView.SetOnTouchListener(new VideoTouchListener(_onTapped));
+                _videoView.SetOnTouchListener(new VideoTouchListener(context, _onTapped));
             }
 
             return new AndroidViewControlHandle(_videoView);
@@ -64,36 +64,38 @@ public class AndroidVideoViewHost : NativeControlHost
 
     private class VideoTouchListener : Java.Lang.Object, global::Android.Views.View.IOnTouchListener
     {
-        private readonly Action _onTapped;
-        private float _startX, _startY;
-        private long _startTime;
+        private readonly global::Android.Views.GestureDetector _gestureDetector;
 
-        public VideoTouchListener(Action onTapped)
+        public VideoTouchListener(global::Android.Content.Context context, Action onTapped)
         {
-            _onTapped = onTapped;
+            _gestureDetector = new global::Android.Views.GestureDetector(context, new SingleTapListener(onTapped));
         }
 
         public bool OnTouch(global::Android.Views.View? v, global::Android.Views.MotionEvent? e)
         {
             if (e == null) return false;
-            switch (e.Action)
-            {
-                case global::Android.Views.MotionEventActions.Down:
-                    _startX = e.GetX();
-                    _startY = e.GetY();
-                    _startTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-                    return true;
-                case global::Android.Views.MotionEventActions.Up:
-                    var dx = Math.Abs(e.GetX() - _startX);
-                    var dy = Math.Abs(e.GetY() - _startY);
-                    var dt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - _startTime;
-                    if (dx < 40 && dy < 40 && dt < 500)
-                    {
-                        _onTapped();
-                    }
-                    return true;
-            }
-            return false;
+            return _gestureDetector.OnTouchEvent(e);
+        }
+    }
+
+    private class SingleTapListener : global::Android.Views.GestureDetector.SimpleOnGestureListener
+    {
+        private readonly Action _onTapped;
+
+        public SingleTapListener(Action onTapped)
+        {
+            _onTapped = onTapped;
+        }
+
+        public override bool OnSingleTapConfirmed(global::Android.Views.MotionEvent? e)
+        {
+            _onTapped();
+            return true;
+        }
+
+        public override bool OnDown(global::Android.Views.MotionEvent? e)
+        {
+            return true;
         }
     }
 }
