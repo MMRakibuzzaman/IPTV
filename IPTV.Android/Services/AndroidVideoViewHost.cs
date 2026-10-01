@@ -39,6 +39,19 @@ public class AndroidVideoViewHost : NativeControlHost
                 _videoView.SetOnTouchListener(new VideoTouchListener(context, _onTapped));
             }
 
+            _videoView.LayoutChange += (s, e) =>
+            {
+                for (int i = 0; i < _videoView.ChildCount; i++)
+                {
+                    var child = _videoView.GetChildAt(i);
+                    if (child is global::Android.Views.SurfaceView sv)
+                    {
+                        sv.SetZOrderOnTop(false);
+                        sv.SetZOrderMediaOverlay(false);
+                    }
+                }
+            };
+
             return new AndroidViewControlHandle(_videoView);
         }
         catch (Exception ex)
