@@ -166,7 +166,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: IPTV-iOS
-          path: IPTV.iOS/bin/Release/net10.0-ios/ios-arm64/*.app
+          path: IPTV.iOS/bin/Release/net10.0-ios/**/*.app
 
   release:
     name: Create GitHub Release
