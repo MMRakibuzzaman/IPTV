@@ -101,12 +101,19 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     private ObservableCollection<SidebarItemViewModel> _visibleSidebarItems = new();
 
+    [ObservableProperty]
+    private bool _isCheckingChannels = false;
+
     public bool CanChangeOrientation => _platformService.CanChangeOrientation;
     public bool IsMobile => OperatingSystem.IsAndroid() || OperatingSystem.IsIOS();
     public bool IsPortraitMode => IsMobile && !IsFullscreen;
     public bool ShowLandscapeTopBar => !IsPortraitMode && ShowControls;
     public bool ShowLandscapeBottomBar => !IsPortraitMode && ShowControls;
-    public string GridRowDefinitions => IsPortraitMode ? "Auto, 230, Auto, *, Auto" : "Auto, *, Auto, Auto, Auto";
+    public string GridRowDefinitions => IsPortraitMode ? "Auto, 230, Auto, *, Auto" : "0, *, 0, 0, 0";
+    public int TopBarRow => IsPortraitMode ? 0 : 1;
+    public int BottomBarRow => IsPortraitMode ? 2 : 1;
+    public Avalonia.Layout.VerticalAlignment TopBarAlignment => IsPortraitMode ? Avalonia.Layout.VerticalAlignment.Center : Avalonia.Layout.VerticalAlignment.Top;
+    public Avalonia.Layout.VerticalAlignment BottomBarAlignment => IsPortraitMode ? Avalonia.Layout.VerticalAlignment.Center : Avalonia.Layout.VerticalAlignment.Bottom;
 
 
     public PlayerViewModel(
@@ -441,6 +448,55 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     }
 
     [RelayCommand]
+    public async Task CheckChannelsAsync()
+    {
+        if (_playlist == null || _playlist.Channels.Count == 0 || IsCheckingChannels) return;
+        
+        IsCheckingChannels = true;
+        try
+        {
+            var workingChannels = new List<Channel>();
+            using var httpClient = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+
+            var semaphore = new SemaphoreSlim(10); 
+            var tasks = _playlist.Channels.Select(async channel =>
+            {
+                await semaphore.WaitAsync();
+                try
+                {
+                    using var request = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Head, channel.StreamUrl);
+                    using var response = await httpClient.SendAsync(request, System.Net.Http.HttpCompletionOption.ResponseHeadersRead);
+                    if (response.IsSuccessStatusCode) return channel;
+                    
+                    using var getRequest = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, channel.StreamUrl);
+                    using var getResponse = await httpClient.SendAsync(getRequest, System.Net.Http.HttpCompletionOption.ResponseHeadersRead);
+                    if (getResponse.IsSuccessStatusCode) return channel;
+                }
+                catch
+                {
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+                return null;
+            });
+
+            var results = await Task.WhenAll(tasks);
+            workingChannels = results.Where(c => c != null).Cast<Channel>().ToList();
+
+            _playlist.Channels = workingChannels;
+            await _playlistRepository.UpdateAsync(_playlist);
+            
+            UpdateVisibleItems();
+        }
+        finally
+        {
+            IsCheckingChannels = false;
+        }
+    }
+
+    [RelayCommand]
     public async Task PlayPreviousChannelAsync()
     {
         if (_playlist == null || _playlist.Channels.Count == 0 || ActiveChannel == null) return;
@@ -473,6 +529,10 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(ShowLandscapeTopBar));
         OnPropertyChanged(nameof(ShowLandscapeBottomBar));
         OnPropertyChanged(nameof(GridRowDefinitions));
+        OnPropertyChanged(nameof(TopBarRow));
+        OnPropertyChanged(nameof(BottomBarRow));
+        OnPropertyChanged(nameof(TopBarAlignment));
+        OnPropertyChanged(nameof(BottomBarAlignment));
 
         if (value)
         {
@@ -624,3 +684,6 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
         _playerService.Stop();
     }
 }
+
+
+

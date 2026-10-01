@@ -91,7 +91,7 @@
         <!-- ============================================================= -->
         <!-- ROW 0: LANDSCAPE / FULLSCREEN TOP BAR                         -->
         <!-- ============================================================= -->
-        <Border Grid.Row="0"
+        <Border Grid.Row="{Binding TopBarRow}" VerticalAlignment="{Binding TopBarAlignment}"
                 Background="#CC12121A"
                 BorderBrush="#40222230"
                 BorderThickness="0,0,0,1"
@@ -142,10 +142,10 @@
         <!-- ============================================================= -->
         <!-- ROW 1: VIDEO SURFACE & SIDEBAR                                -->
         <!-- ============================================================= -->
-        <Grid Grid.Row="1" ColumnDefinitions="*, Auto" Background="Black">
+        <Grid Grid.Row="1" Background="Black">
             
             <!-- Video Container (Underneath) -->
-            <Grid Grid.Column="0" Background="Black">
+            <Grid Background="Black">
                 <!-- 1. Native Video Surface -->
                 <ContentControl x:Name="VideoContainer"
                                 HorizontalAlignment="Stretch"
@@ -171,14 +171,25 @@
                 </Button>
             </Grid>
 
-            <!-- Desktop Channels Sidebar -->
-            <Border Grid.Column="0" Grid.ColumnSpan="2"
+            <!-- Channels Sidebar (Overlay) -->
+            <Border
                     HorizontalAlignment="Right"
                     Width="320"
                     Background="#F214141E"
                     BorderBrush="#252535"
                     BorderThickness="1,0,0,0"
-                    IsVisible="{Binding IsSidebarOpen}">
+                    Classes="sidebar"
+                    Tag="{Binding IsSidebarOpen}">
+                <Border.Styles>
+                    <Style Selector="Border.sidebar[Tag=True]">
+                        <Setter Property="Opacity" Value="1"/>
+                        <Setter Property="IsHitTestVisible" Value="True"/>
+                    </Style>
+                    <Style Selector="Border.sidebar[Tag=False]">
+                        <Setter Property="Opacity" Value="0"/>
+                        <Setter Property="IsHitTestVisible" Value="False"/>
+                    </Style>
+                </Border.Styles>
                 <Grid RowDefinitions="Auto, *">
                     <!-- Sidebar Header with Search & Close -->
                     <StackPanel Grid.Row="0" Margin="14" Spacing="10">
@@ -199,27 +210,36 @@
                             </Button>
                         </Grid>
 
-                        <!-- Search Box -->
-                        <TextBox Text="{Binding SearchQuery, Mode=TwoWay}"
-                                 PlaceholderText="Search channels..."
-                                 CornerRadius="8"
-                                 Height="36"
-                                 Padding="10,6"
-                                 Background="#1B1B27"
-                                 BorderBrush="#2E2E42"
-                                 Foreground="White">
-                            <TextBox.InnerRightContent>
-                                <Button Command="{Binding ClearSearchCommand}"
-                                        IsVisible="{Binding SearchQuery, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                                        Background="Transparent"
-                                        BorderThickness="0"
-                                        Padding="4"
-                                        Margin="0,0,4,0"
-                                        VerticalAlignment="Center">
-                                    <TextBlock Text="✕" FontSize="12" Foreground="#9CA3AF" />
-                                </Button>
-                            </TextBox.InnerRightContent>
-                        </TextBox>
+                        <!-- Search Box & Filter -->
+                        <Grid ColumnDefinitions="*, Auto">
+                            <TextBox Grid.Column="0" Text="{Binding SearchQuery, Mode=TwoWay}"
+                                     PlaceholderText="Search channels..."
+                                     CornerRadius="8"
+                                     Height="36"
+                                     Padding="10,6"
+                                     Background="#1B1B27"
+                                     BorderBrush="#2E2E42"
+                                     Foreground="White">
+                                <TextBox.InnerRightContent>
+                                    <Button Command="{Binding ClearSearchCommand}"
+                                            IsVisible="{Binding SearchQuery, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Padding="4"
+                                            Margin="0,0,4,0"
+                                            VerticalAlignment="Center">
+                                        <TextBlock Text="✕" FontSize="12" Foreground="#9CA3AF" />
+                                    </Button>
+                                </TextBox.InnerRightContent>
+                            </TextBox>
+                            <Button Grid.Column="1" Classes="player-btn" Margin="8,0,0,0" Width="36" Height="36" Padding="0"
+                                    Command="{Binding CheckChannelsCommand}" ToolTip.Tip="Filter Working Channels">
+                                <Panel>
+                                    <TextBlock Text="↻" FontSize="16" Foreground="White" IsVisible="{Binding !IsCheckingChannels}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <TextBlock Text="..." FontSize="16" Foreground="White" IsVisible="{Binding IsCheckingChannels}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Panel>
+                            </Button>
+                        </Grid>
                     </StackPanel>
 
                     <!-- Channels and Categories List -->
@@ -271,7 +291,7 @@
         <!-- ============================================================= -->
         <!-- ROW 2: PORTRAIT QUICK ACTION CONTROLS                         -->
         <!-- ============================================================= -->
-        <Border Grid.Row="2"
+        <Border Grid.Row="{Binding BottomBarRow}" VerticalAlignment="{Binding BottomBarAlignment}"
                 Background="#161622"
                 BorderBrush="#252538"
                 BorderThickness="0,0,0,1"
@@ -384,27 +404,36 @@
               Background="#0F0F17"
               IsVisible="{Binding IsPortraitMode}">
             <!-- Search Box -->
-            <Border Grid.Row="0" Padding="12,8">
-                <TextBox Text="{Binding SearchQuery, Mode=TwoWay}"
-                         PlaceholderText="Search channels..."
-                         CornerRadius="8"
-                         Height="36"
-                         Padding="10,6"
-                         Background="#1B1B27"
-                         BorderBrush="#2E2E42"
-                         Foreground="White">
-                    <TextBox.InnerRightContent>
-                        <Button Command="{Binding ClearSearchCommand}"
-                                IsVisible="{Binding SearchQuery, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                                Background="Transparent"
-                                BorderThickness="0"
-                                Padding="4"
-                                Margin="0,0,4,0"
-                                VerticalAlignment="Center">
-                            <TextBlock Text="✕" FontSize="12" Foreground="#9CA3AF" />
-                        </Button>
-                    </TextBox.InnerRightContent>
-                </TextBox>
+            <Border Grid.Row="{Binding TopBarRow}" VerticalAlignment="{Binding TopBarAlignment}" Padding="12,8">
+                <Grid ColumnDefinitions="*, Auto">
+                    <TextBox Grid.Column="0" Text="{Binding SearchQuery, Mode=TwoWay}"
+                             PlaceholderText="Search channels..."
+                             CornerRadius="8"
+                             Height="36"
+                             Padding="10,6"
+                             Background="#1B1B27"
+                             BorderBrush="#2E2E42"
+                             Foreground="White">
+                        <TextBox.InnerRightContent>
+                            <Button Command="{Binding ClearSearchCommand}"
+                                    IsVisible="{Binding SearchQuery, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="4"
+                                    Margin="0,0,4,0"
+                                    VerticalAlignment="Center">
+                                <TextBlock Text="✕" FontSize="12" Foreground="#9CA3AF" />
+                            </Button>
+                        </TextBox.InnerRightContent>
+                    </TextBox>
+                    <Button Grid.Column="1" Classes="player-btn" Margin="8,0,0,0" Width="36" Height="36" Padding="0"
+                            Command="{Binding CheckChannelsCommand}" ToolTip.Tip="Filter Working Channels">
+                        <Panel>
+                            <TextBlock Text="↻" FontSize="16" Foreground="White" IsVisible="{Binding !IsCheckingChannels}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <TextBlock Text="..." FontSize="16" Foreground="White" IsVisible="{Binding IsCheckingChannels}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Panel>
+                    </Button>
+                </Grid>
             </Border>
 
             <!-- Channels and Categories Scrollable List -->
@@ -587,9 +616,12 @@
                 </Grid>
             </StackPanel>
         </Border>
-
     </Grid>
 </UserControl>
+
+
+
+
 
 
 
