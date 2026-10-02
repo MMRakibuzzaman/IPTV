@@ -22,6 +22,5 @@
     <PackageReference Include="LibVLCSharp.Avalonia" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.Extensions.Http" />
-    <PackageReference Include="System.Net.Http" />
   </ItemGroup>
 </Project>

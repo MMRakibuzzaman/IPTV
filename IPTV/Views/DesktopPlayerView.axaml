@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:IPTV.ViewModels"
              xmlns:models="using:IPTV.Models"
+             xmlns:vlc="clr-namespace:LibVLCSharp.Avalonia;assembly=LibVLCSharp.Avalonia"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="600"
              x:Class="IPTV.Views.DesktopPlayerView"
              x:DataType="vm:PlayerViewModel"
@@ -79,117 +80,208 @@
         <Style Selector="Button.channel-btn:pressed /template/ ContentPresenter">
             <Setter Property="Background" Value="#2A2A3E" />
         </Style>
-        <Style Selector="Button.channel-btn:focus /template/ ContentPresenter">
-            <Setter Property="Background" Value="Transparent" />
-        </Style>
     </UserControl.Styles>
 
-    <Grid x:Name="RootGrid"
-          Background="Black"
-          RowDefinitions="Auto, 230, Auto, *, Auto">
+    <Grid x:Name="RootGrid" Background="Black">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
 
-        <!-- ============================================================= -->
-        <!-- ROW 0: LANDSCAPE / FULLSCREEN TOP BAR                         -->
-        <!-- ============================================================= -->
-        <Border Grid.Row="1" ZIndex="10" VerticalAlignment="Top"
-                Background="#CC12121A"
-                BorderBrush="#40222230"
-                BorderThickness="0,0,0,1"
-                Padding="16,8"
-                IsVisible="{Binding ShowLandscapeTopBar}">
-            <Grid ColumnDefinitions="Auto, *, Auto" VerticalAlignment="Center">
-                <!-- Left: Back Button -->
-                <Button Grid.Column="0"
-                        Classes="player-btn"
-                        Command="{Binding GoBackCommand}"
-                        ToolTip.Tip="Back to Playlists">
-                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                        <Viewbox Width="14" Height="14">
-                            <Path Data="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"
+        <!-- Player Area -->
+        <Grid Grid.Column="0" RowDefinitions="Auto, *, Auto">
+            <!-- TOP BAR -->
+            <Border Grid.Row="0"
+                    Background="#12121A"
+                    BorderBrush="#40222230"
+                    BorderThickness="0,0,0,1"
+                    Padding="16,8"
+                    IsVisible="{Binding ShowControls}">
+                <Grid ColumnDefinitions="Auto, *, Auto" VerticalAlignment="Center">
+                    <Button Grid.Column="0"
+                            Classes="player-btn"
+                            Command="{Binding GoBackCommand}"
+                            ToolTip.Tip="Back to Playlists">
+                        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <Viewbox Width="14" Height="14">
+                                <Path Data="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"
+                                      Fill="White" Stretch="Uniform" />
+                            </Viewbox>
+                            <TextBlock Text="Back" FontSize="13" Foreground="White" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding ActiveChannel.Name, FallbackValue='IPTV Stream'}"
+                                   Foreground="White"
+                                   FontWeight="SemiBold"
+                                   FontSize="15"
+                                   HorizontalAlignment="Center" />
+                        <TextBlock Text="{Binding ActiveChannel.Group, FallbackValue=''}"
+                                   Foreground="#9CA3AF"
+                                   FontSize="11"
+                                   HorizontalAlignment="Center" />
+                    </StackPanel>
+
+                    <Button Grid.Column="2"
+                            Classes="player-btn"
+                            Width="40" Height="36"
+                            Command="{Binding ToggleSidebarCommand}"
+                            ToolTip.Tip="Open Channel List (?)">
+                        <Viewbox Width="20" Height="20">
+                            <Path Data="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"
                                   Fill="White" Stretch="Uniform" />
                         </Viewbox>
-                        <TextBlock Text="Back" FontSize="13" Foreground="White" VerticalAlignment="Center" />
-                    </StackPanel>
-                </Button>
+                    </Button>
+                </Grid>
+            </Border>
 
-                <!-- Center: Active Channel Name -->
-                <StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding ActiveChannel.Name, FallbackValue='IPTV Stream'}"
-                               Foreground="White"
-                               FontWeight="SemiBold"
-                               FontSize="15"
-                               HorizontalAlignment="Center" />
-                    <TextBlock Text="{Binding ActiveChannel.Group, FallbackValue=''}"
-                               Foreground="#9CA3AF"
-                               FontSize="11"
-                               HorizontalAlignment="Center" />
+            <!-- Video Surface -->
+            <vlc:VideoView x:Name="VideoView" 
+                           Grid.Row="1"
+                           HorizontalAlignment="Stretch"
+                           VerticalAlignment="Stretch"
+                           MediaPlayer="{Binding MediaPlayer}" />
+
+            <!-- Transparent Controls Toggle Button -->
+            <Button Grid.Row="1"
+                    Background="Transparent"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    Command="{Binding ToggleControlsCommand}"
+                    HotKey="Enter"
+                    CornerRadius="0"
+                    BorderThickness="0">
+                <Button.Styles>
+                    <Style Selector="Button:pointerover /template/ ContentPresenter">
+                        <Setter Property="Background" Value="Transparent"/>
+                    </Style>
+                    <Style Selector="Button:pressed /template/ ContentPresenter">
+                        <Setter Property="Background" Value="Transparent"/>
+                    </Style>
+                </Button.Styles>
+            </Button>
+
+            <!-- BOTTOM BAR -->
+            <Border Grid.Row="2"
+                    Background="#12121A"
+                    BorderBrush="#40222230"
+                    BorderThickness="0,1,0,0"
+                    Padding="24,16"
+                    IsVisible="{Binding ShowControls}">
+                <StackPanel Spacing="16">
+                    <!-- Timeline / Scrubber -->
+                    <Grid ColumnDefinitions="Auto, *, Auto" Margin="4,0" IsVisible="{Binding DurationSeconds}">
+                        <TextBlock Grid.Column="0" Text="{Binding CurrentPositionText}" 
+                                   FontSize="11" Foreground="#818CF8" FontWeight="Medium" VerticalAlignment="Center" />
+                        
+                        <Slider Grid.Column="1"
+                                Margin="10,0"
+                                Minimum="0"
+                                Maximum="{Binding DurationSeconds}"
+                                Value="{Binding CurrentPositionSeconds, Mode=TwoWay}" />
+
+                        <TextBlock Grid.Column="2" Text="{Binding DurationText}" 
+                                   FontSize="11" Foreground="#9CA3AF" VerticalAlignment="Center" />
+                    </Grid>
+
+                    <!-- Bottom Action Controls -->
+                    <Grid ColumnDefinitions="Auto, Auto, *, Auto">
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <Button Classes="player-btn" Width="34" Height="34" Padding="0"
+                                    Command="{Binding PlayPreviousChannelCommand}" ToolTip.Tip="Previous Channel">
+                                <Viewbox Width="14" Height="14">
+                                    <Path Data="M6 6h2v12H6zm3.5 6l8.5 6V6z" Fill="White" Stretch="Uniform" />
+                                </Viewbox>
+                            </Button>
+
+                            <Button Classes="round-btn" Width="40" Height="40"
+                                    Command="{Binding TogglePlayPauseCommand}"
+                                    ToolTip.Tip="Play / Pause">
+                                <Panel>
+                                    <Viewbox Width="14" Height="14" IsVisible="{Binding IsPlaying}">
+                                        <Path Data="M6 19h4V5H6v14zm8-14v14h4V5h-4z" Fill="White" Stretch="Uniform" />
+                                    </Viewbox>
+                                    <Viewbox Width="14" Height="14" IsVisible="{Binding !IsPlaying}">
+                                        <Path Data="M8 5v14l11-7z" Fill="White" Stretch="Uniform" />
+                                    </Viewbox>
+                                </Panel>
+                            </Button>
+
+                            <Button Classes="player-btn" Width="34" Height="34" Padding="0"
+                                    Command="{Binding PlayNextChannelCommand}" ToolTip.Tip="Next Channel">
+                                <Viewbox Width="14" Height="14">
+                                    <Path Data="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" Fill="White" Stretch="Uniform" />
+                                </Viewbox>
+                            </Button>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="14,0,0,0" VerticalAlignment="Center">
+                            <Viewbox Width="16" Height="16">
+                                <Path Data="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"
+                                      Fill="#9CA3AF" Stretch="Uniform" />
+                            </Viewbox>
+                            
+                            <Slider Minimum="0" Maximum="1" Width="90"
+                                    Value="{Binding Volume, Mode=TwoWay}"
+                                    VerticalAlignment="Center" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                            <Button Classes="player-btn" Height="34" ToolTip.Tip="Stream Quality">
+                                <TextBlock Text="{Binding SelectedQuality.Name, FallbackValue='Auto'}" FontSize="11" FontWeight="Bold" Foreground="White" />
+                                <Button.Flyout>
+                                    <Flyout Placement="Top">
+                                        <Border Background="#161622" BorderBrush="#2E2E42" BorderThickness="1" CornerRadius="8" Padding="4" MinWidth="130">
+                                            <ItemsControl ItemsSource="{Binding AvailableQualities}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="models:StreamQuality">
+                                                        <Button Classes="quality-item-btn" Click="OnQualityItemClick">
+                                                            <Grid ColumnDefinitions="20, *">
+                                                                <TextBlock Grid.Column="0" Text="✓" Foreground="#818CF8" FontWeight="Bold" FontSize="11" IsVisible="{Binding IsSelected}" VerticalAlignment="Center" />
+                                                                <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12" Foreground="White" VerticalAlignment="Center" />
+                                                            </Grid>
+                                                        </Button>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Border>
+                                    </Flyout>
+                                </Button.Flyout>
+                            </Button>
+
+                            <Button Classes="player-btn" Height="34" Command="{Binding ToggleAspectCommand}" ToolTip.Tip="{Binding CurrentAspect, StringFormat='Aspect: {0}'}">
+                                <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                    <Viewbox Width="14" Height="14">
+                                        <Path Data="M19 12h-2v3h-3v2h5v-5zM7 9h3V7H5v5h2V9zm14-6H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16.01H3V4.99h18v14.02z" Fill="White" Stretch="Uniform" />
+                                    </Viewbox>
+                                    <TextBlock Text="{Binding CurrentAspect}" FontSize="11" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+
+                            <Button Classes="player-btn" Width="36" Height="34" Command="{Binding ToggleOrientationCommand}" ToolTip.Tip="Toggle Fullscreen">
+                                <Panel>
+                                    <Viewbox Width="15" Height="15" IsVisible="{Binding !IsFullscreen}">
+                                        <Path Data="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" Fill="White" Stretch="Uniform" />
+                                    </Viewbox>
+                                    <Viewbox Width="15" Height="15" IsVisible="{Binding IsFullscreen}">
+                                        <Path Data="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z" Fill="White" Stretch="Uniform" />
+                                    </Viewbox>
+                                </Panel>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
                 </StackPanel>
+            </Border>
+        </Grid>
 
-                <!-- Right: Hamburger Menu (☰) to Toggle Channel Sidebar -->
-                <Button Grid.Column="2"
-                        Classes="player-btn"
-                        Width="40" Height="36"
-                        Command="{Binding ToggleSidebarCommand}"
-                        ToolTip.Tip="Open Channel List (☰)">
-                    <Viewbox Width="20" Height="20">
-                        <Path Data="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"
-                              Fill="White" Stretch="Uniform" />
-                    </Viewbox>
-                </Button>
-            </Grid>
-        </Border>
-
-        <!-- ============================================================= -->
-        <!-- ROW 1: VIDEO SURFACE & SIDEBAR                                -->
-        <!-- ============================================================= -->
-        <Grid Grid.Row="1" Background="Black">
-            
-            <!-- Video Container (Underneath) -->
-            <Grid Background="Black">
-                <!-- 1. Native Video Surface -->
-                <ContentControl x:Name="VideoContainer"
-                                HorizontalAlignment="Stretch"
-                                VerticalAlignment="Stretch"
-                                HorizontalContentAlignment="Stretch"
-                                VerticalContentAlignment="Stretch" />
-
-                <!-- 2. Transparent Controls Toggle Button (Desktop & general tap) -->
-                <Button Background="Transparent"
-                        HorizontalAlignment="Stretch"
-                        VerticalAlignment="Stretch"
-                        Command="{Binding ToggleControlsCommand}"
-                        CornerRadius="0"
-                        BorderThickness="0">
-                    <Button.Styles>
-                        <Style Selector="Button:pointerover /template/ ContentPresenter">
-                            <Setter Property="Background" Value="Transparent"/>
-                        </Style>
-                        <Style Selector="Button:pressed /template/ ContentPresenter">
-                            <Setter Property="Background" Value="Transparent"/>
-                        </Style>
-                    </Button.Styles>
-                </Button>
-            </Grid>
-
-            <!-- Channels Sidebar (Overlay) -->
-            <Border
-                    HorizontalAlignment="Right"
-                    Width="320"
-                    Background="#F214141E"
-                    BorderBrush="#252535"
-                    BorderThickness="1,0,0,0"
-                    Classes="sidebar"
-                    Tag="{Binding IsSidebarOpen}">
-                <Border.Styles>
-                    <Style Selector="Border.sidebar[Tag=True]">
-                        <Setter Property="Opacity" Value="1"/>
-                        <Setter Property="IsHitTestVisible" Value="True"/>
-                    </Style>
-                    <Style Selector="Border.sidebar[Tag=False]">
-                        <Setter Property="Opacity" Value="0"/>
-                        <Setter Property="IsHitTestVisible" Value="False"/>
-                    </Style>
-                </Border.Styles>
+        <!-- DESKTOP SIDEBAR OVERLAY -->
+        <Grid Grid.Column="1" 
+              Width="320"
+              IsVisible="{Binding ShowDesktopSidebar}">
+            <Border Background="#F212121A"
+                    BorderBrush="#40222230"
+                    BorderThickness="1,0,0,0">
                 <Grid RowDefinitions="Auto, *">
                     <!-- Sidebar Header with Search & Close -->
                     <StackPanel Grid.Row="0" Margin="14" Spacing="10">
@@ -242,7 +334,7 @@
                         </Grid>
                     </StackPanel>
 
-                    <!-- Channels and Categories List -->
+                    <!-- Channels and Categories Scrollable List -->
                     <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
                         <ItemsControl ItemsSource="{Binding VisibleSidebarItems}" Margin="10,0,10,16">
                             <ItemsControl.ItemTemplate>
@@ -285,346 +377,6 @@
                 </Grid>
             </Border>
         </Grid>
-
-
-
-        <!-- ============================================================= -->
-        <!-- ROW 2: PORTRAIT QUICK ACTION CONTROLS                         -->
-        <!-- ============================================================= -->
-        <Border Grid.Row="{Binding BottomBarRow}" VerticalAlignment="{Binding BottomBarAlignment}"
-                Background="#161622"
-                BorderBrush="#252538"
-                BorderThickness="0,0,0,1"
-                Padding="12,8"
-                IsVisible="{Binding IsPortraitMode}">
-            <Grid ColumnDefinitions="Auto, *, Auto">
-                <!-- Left: Back Button & Channel Name -->
-                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                    <Button Classes="player-btn"
-                            Width="36" Height="34"
-                            Padding="0"
-                            Command="{Binding GoBackCommand}"
-                            ToolTip.Tip="Back to Playlists">
-                        <Viewbox Width="14" Height="14">
-                            <Path Data="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"
-                                  Fill="White" Stretch="Uniform" />
-                        </Viewbox>
-                    </Button>
-                    <StackPanel VerticalAlignment="Center" MaxWidth="160">
-                        <TextBlock Text="{Binding ActiveChannel.Name, FallbackValue='Select Channel'}"
-                                   FontWeight="SemiBold" FontSize="13" Foreground="White"
-                                   TextTrimming="CharacterEllipsis" />
-                        <TextBlock Text="{Binding ActiveChannel.Group, FallbackValue=''}"
-                                   FontSize="10" Foreground="#9CA3AF"
-                                   TextTrimming="CharacterEllipsis" />
-                    </StackPanel>
-                </StackPanel>
-
-                <!-- Center: Prev, Play/Pause, Next Controls -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <Button Classes="player-btn" Width="32" Height="32" Padding="0"
-                            Command="{Binding PlayPreviousChannelCommand}" ToolTip.Tip="Previous Channel">
-                        <Viewbox Width="13" Height="13">
-                            <Path Data="M6 6h2v12H6zm3.5 6l8.5 6V6z" Fill="White" Stretch="Uniform" />
-                        </Viewbox>
-                    </Button>
-                    <Button Classes="round-btn" Width="36" Height="36"
-                            Command="{Binding TogglePlayPauseCommand}" ToolTip.Tip="Play / Pause">
-                        <Panel>
-                            <Viewbox Width="13" Height="13" IsVisible="{Binding IsPlaying}">
-                                <Path Data="M6 19h4V5H6v14zm8-14v14h4V5h-4z" Fill="White" Stretch="Uniform" />
-                            </Viewbox>
-                            <Viewbox Width="13" Height="13" IsVisible="{Binding !IsPlaying}">
-                                <Path Data="M8 5v14l11-7z" Fill="White" Stretch="Uniform" />
-                            </Viewbox>
-                        </Panel>
-                    </Button>
-                    <Button Classes="player-btn" Width="32" Height="32" Padding="0"
-                            Command="{Binding PlayNextChannelCommand}" ToolTip.Tip="Next Channel">
-                        <Viewbox Width="13" Height="13">
-                            <Path Data="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" Fill="White" Stretch="Uniform" />
-                        </Viewbox>
-                    </Button>
-                </StackPanel>
-
-                <!-- Right: Quality, Aspect & ROTATE / FULLSCREEN -->
-                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                    <!-- Quality Picker -->
-                    <Button x:Name="PortraitQualityButton"
-                            Classes="player-btn"
-                            Height="32" Padding="6,0"
-                            ToolTip.Tip="Stream Quality">
-                        <TextBlock Text="{Binding SelectedQuality.Name, FallbackValue='Auto'}" 
-                                   FontSize="10" FontWeight="Bold" Foreground="White" />
-                        <Button.Flyout>
-                            <Flyout Placement="Bottom">
-                                <Border Background="#161622"
-                                        BorderBrush="#2E2E42"
-                                        BorderThickness="1"
-                                        CornerRadius="8"
-                                        Padding="4"
-                                        MinWidth="130">
-                                    <ItemsControl ItemsSource="{Binding AvailableQualities}">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate x:DataType="models:StreamQuality">
-                                                <Button Classes="quality-item-btn" Click="OnQualityItemClick">
-                                                    <Grid ColumnDefinitions="20, *">
-                                                        <TextBlock Grid.Column="0" Text="✓" Foreground="#818CF8" FontWeight="Bold" FontSize="11"
-                                                                   IsVisible="{Binding IsSelected}" VerticalAlignment="Center" />
-                                                        <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12" Foreground="White" VerticalAlignment="Center" />
-                                                    </Grid>
-                                                </Button>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </Border>
-                            </Flyout>
-                        </Button.Flyout>
-                    </Button>
-
-                    <!-- Rotate / Fullscreen Toggle -->
-                    <Button Classes="player-btn"
-                            Width="36" Height="32" Padding="0"
-                            Command="{Binding ToggleOrientationCommand}"
-                            ToolTip.Tip="Toggle Fullscreen">
-                        <Viewbox Width="15" Height="15">
-                            <Path Data="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"
-                                  Fill="White" Stretch="Uniform" />
-                        </Viewbox>
-                    </Button>
-                </StackPanel>
-            </Grid>
-        </Border>
-
-        <!-- ============================================================= -->
-        <!-- ROW 3: PORTRAIT CHANNELS BROWSER                              -->
-        <!-- ============================================================= -->
-        <Grid Grid.Row="3"
-              RowDefinitions="Auto, *"
-              Background="#0F0F17"
-              IsVisible="{Binding IsPortraitMode}">
-            <!-- Search Box -->
-            <Border Grid.Row="{Binding TopBarRow}" VerticalAlignment="{Binding TopBarAlignment}" Padding="12,8">
-                <Grid ColumnDefinitions="*, Auto">
-                    <TextBox Grid.Column="0" Text="{Binding SearchQuery, Mode=TwoWay}"
-                             PlaceholderText="Search channels..."
-                             CornerRadius="8"
-                             Height="36"
-                             Padding="10,6"
-                             Background="#1B1B27"
-                             BorderBrush="#2E2E42"
-                             Foreground="White">
-                        <TextBox.InnerRightContent>
-                            <Button Command="{Binding ClearSearchCommand}"
-                                    IsVisible="{Binding SearchQuery, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                                    Background="Transparent"
-                                    BorderThickness="0"
-                                    Padding="4"
-                                    Margin="0,0,4,0"
-                                    VerticalAlignment="Center">
-                                <TextBlock Text="✕" FontSize="12" Foreground="#9CA3AF" />
-                            </Button>
-                        </TextBox.InnerRightContent>
-                    </TextBox>
-                    <Button Grid.Column="1" Classes="player-btn" Margin="8,0,0,0" Width="36" Height="36" Padding="0"
-                            Command="{Binding CheckChannelsCommand}" ToolTip.Tip="Filter Working Channels">
-                        <Panel>
-                            <TextBlock Text="↻" FontSize="16" Foreground="White" IsVisible="{Binding !IsCheckingChannels}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                            <TextBlock Text="..." FontSize="16" Foreground="White" IsVisible="{Binding IsCheckingChannels}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Panel>
-                    </Button>
-                </Grid>
-            </Border>
-
-            <!-- Channels and Categories Scrollable List -->
-            <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
-                <ItemsControl ItemsSource="{Binding VisibleSidebarItems}" Margin="10,0,10,16">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:SidebarItemViewModel">
-                            <Panel>
-                                <!-- Group Header -->
-                                <Button Classes="channel-btn"
-                                        IsVisible="{Binding IsHeader}"
-                                        Command="{Binding $parent[UserControl].((vm:PlayerViewModel)DataContext).ToggleGroupCommand}"
-                                        CommandParameter="{Binding Name}"
-                                        Background="#1C1C28"
-                                        Margin="0,4,0,2">
-                                    <Grid ColumnDefinitions="*, Auto">
-                                        <TextBlock Grid.Column="0" Text="{Binding Name}" 
-                                                   FontWeight="SemiBold" FontSize="13" Foreground="#818CF8" />
-                                        <TextBlock Grid.Column="1" Text="▼" 
-                                                   FontSize="10" Foreground="#818CF8" />
-                                    </Grid>
-                                </Button>
-
-                                <!-- Channel Item -->
-                                <Button Classes="channel-btn"
-                                        IsVisible="{Binding !IsHeader}"
-                                        Command="{Binding $parent[UserControl].((vm:PlayerViewModel)DataContext).PlayChannelCommand}"
-                                        CommandParameter="{Binding Channel}">
-                                    <Grid ColumnDefinitions="Auto, *">
-                                        <Border Grid.Column="0" Width="3" Height="14" CornerRadius="2" Background="#6366F1" Margin="0,0,8,0" IsVisible="{Binding IsActive}" />
-                                        <TextBlock Grid.Column="1" Text="{Binding Channel.Name, FallbackValue=''}" 
-                                                   FontSize="13" 
-                                                   Foreground="White"
-                                                   TextTrimming="CharacterEllipsis"
-                                                   VerticalAlignment="Center" />
-                                    </Grid>
-                                </Button>
-                            </Panel>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
-        </Grid>
-
-        <!-- ============================================================= -->
-        <!-- ROW 4: LANDSCAPE / FULLSCREEN BOTTOM BAR                      -->
-        <!-- ============================================================= -->
-        <Border Grid.Row="1" ZIndex="10" VerticalAlignment="Bottom"
-                Background="#CC12121A"
-                BorderBrush="#40222230"
-                BorderThickness="0,1,0,0"
-                Padding="20,10"
-                IsVisible="{Binding ShowLandscapeBottomBar}">
-            <StackPanel Spacing="8">
-                <!-- Seek Slider (only when stream duration is known) -->
-                <Grid ColumnDefinitions="Auto, *, Auto" Margin="4,0" IsVisible="{Binding DurationSeconds}">
-                    <TextBlock Grid.Column="0" Text="{Binding CurrentPositionText}" 
-                               FontSize="11" Foreground="#9CA3AF" VerticalAlignment="Center" />
-                    
-                    <Slider Grid.Column="1"
-                            Margin="10,0"
-                            Minimum="0"
-                            Maximum="{Binding DurationSeconds}"
-                            Value="{Binding CurrentPositionSeconds, Mode=TwoWay}" />
-
-                    <TextBlock Grid.Column="2" Text="{Binding DurationText}" 
-                               FontSize="11" Foreground="#9CA3AF" VerticalAlignment="Center" />
-                </Grid>
-
-                <!-- Bottom Action Controls -->
-                <Grid ColumnDefinitions="Auto, Auto, *, Auto">
-                    <!-- Left: Channel Prev, Play/Pause, Next -->
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                        <Button Classes="player-btn" Width="34" Height="34" Padding="0"
-                                Command="{Binding PlayPreviousChannelCommand}" ToolTip.Tip="Previous Channel">
-                            <Viewbox Width="14" Height="14">
-                                <Path Data="M6 6h2v12H6zm3.5 6l8.5 6V6z" Fill="White" Stretch="Uniform" />
-                            </Viewbox>
-                        </Button>
-
-                        <Button Classes="round-btn"
-                                Command="{Binding TogglePlayPauseCommand}"
-                                ToolTip.Tip="Play / Pause">
-                            <Panel>
-                                <Viewbox Width="14" Height="14" IsVisible="{Binding IsPlaying}">
-                                    <Path Data="M6 19h4V5H6v14zm8-14v14h4V5h-4z" Fill="White" Stretch="Uniform" />
-                                </Viewbox>
-                                <Viewbox Width="14" Height="14" IsVisible="{Binding !IsPlaying}">
-                                    <Path Data="M8 5v14l11-7z" Fill="White" Stretch="Uniform" />
-                                </Viewbox>
-                            </Panel>
-                        </Button>
-
-                        <Button Classes="player-btn" Width="34" Height="34" Padding="0"
-                                Command="{Binding PlayNextChannelCommand}" ToolTip.Tip="Next Channel">
-                            <Viewbox Width="14" Height="14">
-                                <Path Data="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" Fill="White" Stretch="Uniform" />
-                            </Viewbox>
-                        </Button>
-                    </StackPanel>
-
-                    <!-- Volume Slider -->
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="14,0,0,0" VerticalAlignment="Center">
-                        <Viewbox Width="16" Height="16">
-                            <Path Data="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"
-                                  Fill="#9CA3AF" Stretch="Uniform" />
-                        </Viewbox>
-                        
-                        <Slider Minimum="0" Maximum="1" Width="90"
-                                Value="{Binding Volume, Mode=TwoWay}"
-                                VerticalAlignment="Center" />
-                    </StackPanel>
-
-                    <!-- Right Controls: Quality, Aspect, Rotate -->
-                    <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                        <!-- Quality Picker -->
-                        <Button x:Name="QualityButton"
-                                Classes="player-btn"
-                                Height="34"
-                                ToolTip.Tip="Stream Quality">
-                            <TextBlock Text="{Binding SelectedQuality.Name, FallbackValue='Auto'}" 
-                                       FontSize="11" FontWeight="Bold" Foreground="White" />
-                            <Button.Flyout>
-                                <Flyout Placement="Top">
-                                    <Border Background="#161622"
-                                            BorderBrush="#2E2E42"
-                                            BorderThickness="1"
-                                            CornerRadius="8"
-                                            Padding="4"
-                                            MinWidth="130">
-                                        <ItemsControl ItemsSource="{Binding AvailableQualities}">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate x:DataType="models:StreamQuality">
-                                                    <Button Classes="quality-item-btn" Click="OnQualityItemClick">
-                                                        <Grid ColumnDefinitions="20, *">
-                                                            <TextBlock Grid.Column="0" Text="✓" Foreground="#818CF8" FontWeight="Bold" FontSize="11"
-                                                                       IsVisible="{Binding IsSelected}" VerticalAlignment="Center" />
-                                                            <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12" Foreground="White" VerticalAlignment="Center" />
-                                                        </Grid>
-                                                    </Button>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </Border>
-                                </Flyout>
-                            </Button.Flyout>
-                        </Button>
-
-                        <!-- Aspect Ratio -->
-                        <Button Classes="player-btn"
-                                Height="34"
-                                Command="{Binding ToggleAspectCommand}"
-                                ToolTip.Tip="{Binding CurrentAspect, StringFormat='Aspect: {0}'}">
-                            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                                <Viewbox Width="14" Height="14">
-                                    <Path Data="M19 12h-2v3h-3v2h5v-5zM7 9h3V7H5v5h2V9zm14-6H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16.01H3V4.99h18v14.02z"
-                                          Fill="White" Stretch="Uniform" />
-                                </Viewbox>
-                                <TextBlock Text="{Binding CurrentAspect}" FontSize="11" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Button>
-
-                        <!-- Rotate / Fullscreen Toggle -->
-                        <Button Classes="player-btn"
-                                Width="36" Height="34"
-                                Command="{Binding ToggleOrientationCommand}"
-                                ToolTip.Tip="Toggle Fullscreen">
-                            <Panel>
-                                <Viewbox Width="15" Height="15" IsVisible="{Binding !IsFullscreen}">
-                                    <Path Data="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"
-                                          Fill="White" Stretch="Uniform" />
-                                </Viewbox>
-                                <Viewbox Width="15" Height="15" IsVisible="{Binding IsFullscreen}">
-                                    <Path Data="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"
-                                          Fill="White" Stretch="Uniform" />
-                                </Viewbox>
-                            </Panel>
-                        </Button>
-                    </StackPanel>
-                </Grid>
-            </StackPanel>
-        </Border>
     </Grid>
 </UserControl>
-
-
-
-
-
-
-
-
-
 
