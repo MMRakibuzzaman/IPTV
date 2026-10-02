@@ -107,13 +107,14 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     public bool CanChangeOrientation => _platformService.CanChangeOrientation;
     public bool IsMobile => OperatingSystem.IsAndroid() || OperatingSystem.IsIOS();
     public bool IsPortraitMode => IsMobile && !IsFullscreen;
-    public bool ShowLandscapeTopBar => !IsPortraitMode && ShowControls;
-    public bool ShowLandscapeBottomBar => !IsPortraitMode && ShowControls;
-    public Avalonia.Controls.RowDefinitions GridRowDefinitions => IsPortraitMode ? Avalonia.Controls.RowDefinitions.Parse("Auto, 230, Auto, *, Auto") : Avalonia.Controls.RowDefinitions.Parse("0, *, 0, 0, 0");
-    public int TopBarRow => IsPortraitMode ? 0 : 1;
-    public int BottomBarRow => IsPortraitMode ? 2 : 1;
-    public Avalonia.Layout.VerticalAlignment TopBarAlignment => IsPortraitMode ? Avalonia.Layout.VerticalAlignment.Center : Avalonia.Layout.VerticalAlignment.Top;
-    public Avalonia.Layout.VerticalAlignment BottomBarAlignment => IsPortraitMode ? Avalonia.Layout.VerticalAlignment.Center : Avalonia.Layout.VerticalAlignment.Bottom;
+    public bool ShowTopBar => IsPortraitMode || ShowControls;
+    public bool ShowBottomBar => IsPortraitMode || ShowControls;
+    public int VideoRow => IsPortraitMode ? 1 : 3;
+    public double VideoHeight => IsPortraitMode ? 230 : double.NaN;
+    public int SidebarRow => IsPortraitMode ? 1 : 0;
+    public int SidebarColumn => IsPortraitMode ? 0 : 1;
+    public int SidebarRowSpan => IsPortraitMode ? 4 : 5;
+
 
 
     public PlayerViewModel(
@@ -513,8 +514,8 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
 
     partial void OnShowControlsChanged(bool value)
     {
-        OnPropertyChanged(nameof(ShowLandscapeTopBar));
-        OnPropertyChanged(nameof(ShowLandscapeBottomBar));
+        OnPropertyChanged(nameof(ShowTopBar));
+        OnPropertyChanged(nameof(ShowBottomBar));
     }
 
     partial void OnIsSidebarOpenChanged(bool value)
@@ -526,13 +527,14 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     partial void OnIsFullscreenChanged(bool value)
     {
         OnPropertyChanged(nameof(IsPortraitMode));
-        OnPropertyChanged(nameof(ShowLandscapeTopBar));
-        OnPropertyChanged(nameof(ShowLandscapeBottomBar));
-        OnPropertyChanged(nameof(GridRowDefinitions));
-        OnPropertyChanged(nameof(TopBarRow));
-        OnPropertyChanged(nameof(BottomBarRow));
-        OnPropertyChanged(nameof(TopBarAlignment));
-        OnPropertyChanged(nameof(BottomBarAlignment));
+        OnPropertyChanged(nameof(ShowTopBar));
+        OnPropertyChanged(nameof(ShowBottomBar));
+        OnPropertyChanged(nameof(VideoRow));
+        OnPropertyChanged(nameof(VideoHeight));
+        
+        OnPropertyChanged(nameof(SidebarRow));
+        OnPropertyChanged(nameof(SidebarColumn));
+        OnPropertyChanged(nameof(SidebarRowSpan));
 
         if (value)
         {
@@ -684,6 +686,10 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
         _playerService.Stop();
     }
 }
+
+
+
+
 
 
 

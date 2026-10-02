@@ -83,7 +83,17 @@ public class PlayerService : IPlayerService
         OnStopStream?.Invoke();
         try
         {
-            _mediaPlayer?.Stop();
+            Task.Run(() =>
+            {
+                try
+                {
+                    _mediaPlayer?.Stop();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[PlayerService] Error inside stop task: {ex.Message}");
+                }
+            });
         }
         catch (Exception ex)
         {

@@ -24,37 +24,16 @@ public partial class MobilePlayerView : UserControl
 
         DataContextChanged += (_, _) =>
         {
-            if (DataContext is PlayerViewModel vm)
-            {
-                vm.PropertyChanged -= Vm_PropertyChanged;
-                vm.PropertyChanged += Vm_PropertyChanged;
-                UpdateGridRows(vm);
-            }
             CreateVideoSurface();
         };
         Loaded += (_, _) =>
         {
-            if (DataContext is PlayerViewModel vm)
-            {
-                UpdateGridRows(vm);
-            }
             CreateVideoSurface();
         };
         CreateVideoSurface();
     }
 
-    private void Vm_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
-    {
-        if (e.PropertyName == nameof(PlayerViewModel.IsPortraitMode) && DataContext is PlayerViewModel vm)
-        {
-            Avalonia.Threading.Dispatcher.UIThread.Post(() => UpdateGridRows(vm));
-        }
-    }
 
-    private void UpdateGridRows(PlayerViewModel vm)
-    {
-        RootGrid.RowDefinitions = vm.GridRowDefinitions;
-    }
 
     /// <summary>
     /// Creates the platform-appropriate video surface.
@@ -199,6 +178,7 @@ public partial class MobilePlayerView : UserControl
         }
     }
 }
+
 
 
 

@@ -1,4 +1,4 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+﻿<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -86,17 +86,17 @@
 
     <Grid x:Name="RootGrid"
           Background="Black"
-          RowDefinitions="Auto, 230, Auto, *, Auto">
+          RowDefinitions="Auto, Auto, Auto, *, Auto" ColumnDefinitions="*, Auto">
 
         <!-- ============================================================= -->
         <!-- ROW 0: LANDSCAPE / FULLSCREEN TOP BAR                         -->
         <!-- ============================================================= -->
-        <Border Grid.Row="1" ZIndex="10" VerticalAlignment="Top"
+        <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" ZIndex="10" VerticalAlignment="Top"
                 Background="#CC12121A"
                 BorderBrush="#40222230"
                 BorderThickness="0,0,0,1"
                 Padding="16,8"
-                IsVisible="{Binding ShowLandscapeTopBar}">
+                IsVisible="{Binding ShowTopBar}">
             <Grid ColumnDefinitions="Auto, *, Auto" VerticalAlignment="Center">
                 <!-- Left: Back Button -->
                 <Button Grid.Column="0"
@@ -140,11 +140,12 @@
         </Border>
 
         <!-- ============================================================= -->
-        <!-- ROW 1: VIDEO SURFACE & SIDEBAR                                -->
         <!-- ============================================================= -->
-        <Grid Grid.Row="1" Background="Black">
+        <!-- ROW 1: VIDEO SURFACE                                          -->
+        <!-- ============================================================= -->
+        <Grid Grid.Row="{Binding VideoRow}" Grid.Column="0" Height="{Binding VideoHeight}" Background="Black">
             
-            <!-- Video Container (Underneath) -->
+            <!-- Video Container -->
             <Grid Background="Black">
                 <!-- 1. Native Video Surface -->
                 <ContentControl x:Name="VideoContainer"
@@ -170,16 +171,18 @@
                     </Button.Styles>
                 </Button>
             </Grid>
+            </Grid>
 
-            <!-- Channels Sidebar (Overlay) -->
-            <Border
-                    HorizontalAlignment="Right"
+            <!-- Channels Sidebar -->
+            <Border Grid.Row="{Binding SidebarRow}"
+                    Grid.Column="{Binding SidebarColumn}"
+                    Grid.RowSpan="{Binding SidebarRowSpan}"
                     Width="320"
                     Background="#F214141E"
                     BorderBrush="#252535"
                     BorderThickness="1,0,0,0"
-                    Classes="sidebar"
-                    Tag="{Binding IsSidebarOpen}">
+                    IsVisible="{Binding ShowAndroidSidebar}"
+                    Classes="sidebar">
                 <Border.Styles>
                     <Style Selector="Border.sidebar[Tag=True]">
                         <Setter Property="Opacity" Value="1"/>
@@ -284,14 +287,13 @@
                     </ScrollViewer>
                 </Grid>
             </Border>
-        </Grid>
 
 
 
         <!-- ============================================================= -->
         <!-- ROW 2: PORTRAIT QUICK ACTION CONTROLS                         -->
         <!-- ============================================================= -->
-        <Border Grid.Row="{Binding BottomBarRow}" VerticalAlignment="{Binding BottomBarAlignment}"
+        <Border Grid.Row="2" VerticalAlignment="Top"
                 Background="#161622"
                 BorderBrush="#252538"
                 BorderThickness="0,0,0,1"
@@ -404,7 +406,7 @@
               Background="#0F0F17"
               IsVisible="{Binding IsPortraitMode}">
             <!-- Search Box -->
-            <Border Grid.Row="{Binding TopBarRow}" VerticalAlignment="{Binding TopBarAlignment}" Padding="12,8">
+            <Border Grid.Row="3" VerticalAlignment="Top" Padding="12,8">
                 <Grid ColumnDefinitions="*, Auto">
                     <TextBox Grid.Column="0" Text="{Binding SearchQuery, Mode=TwoWay}"
                              PlaceholderText="Search channels..."
@@ -481,12 +483,12 @@
         <!-- ============================================================= -->
         <!-- ROW 4: LANDSCAPE / FULLSCREEN BOTTOM BAR                      -->
         <!-- ============================================================= -->
-        <Border Grid.Row="1" ZIndex="10" VerticalAlignment="Bottom"
+        <Border Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" ZIndex="10" VerticalAlignment="Bottom"
                 Background="#CC12121A"
                 BorderBrush="#40222230"
                 BorderThickness="0,1,0,0"
                 Padding="20,10"
-                IsVisible="{Binding ShowLandscapeBottomBar}">
+                IsVisible="{Binding ShowBottomBar}">
             <StackPanel Spacing="8">
                 <!-- Seek Slider (only when stream duration is known) -->
                 <Grid ColumnDefinitions="Auto, *, Auto" Margin="4,0" IsVisible="{Binding DurationSeconds}">
@@ -618,6 +620,9 @@
         </Border>
     </Grid>
 </UserControl>
+
+
+
 
 
 
