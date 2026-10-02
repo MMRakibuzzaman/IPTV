@@ -108,7 +108,7 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     public bool IsMobile => OperatingSystem.IsAndroid() || OperatingSystem.IsIOS();
     public bool IsPortraitMode => IsMobile && !IsFullscreen;
     public bool ShowTopBar => IsPortraitMode || ShowControls;
-    public bool ShowBottomBar => IsPortraitMode || ShowControls;
+    public bool ShowBottomBar => !IsPortraitMode && ShowControls;
     public int VideoRow => IsPortraitMode ? 1 : 3;
     public double VideoHeight => IsPortraitMode ? 230 : double.NaN;
     public int SidebarRow => IsPortraitMode ? 1 : 0;

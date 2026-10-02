@@ -1,4 +1,4 @@
-﻿<UserControl xmlns="https://github.com/avaloniaui"
+<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -406,7 +406,7 @@
               Background="#0F0F17"
               IsVisible="{Binding IsPortraitMode}">
             <!-- Search Box -->
-            <Border Grid.Row="3" VerticalAlignment="Top" Padding="12,8">
+            <Border Grid.Row="0" VerticalAlignment="Top" Padding="12,8">
                 <Grid ColumnDefinitions="*, Auto">
                     <TextBox Grid.Column="0" Text="{Binding SearchQuery, Mode=TwoWay}"
                              PlaceholderText="Search channels..."
