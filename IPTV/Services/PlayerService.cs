@@ -173,3 +173,4 @@ public class PlayerService : IPlayerService
         _libVLC?.Dispose();
     }
 }
+

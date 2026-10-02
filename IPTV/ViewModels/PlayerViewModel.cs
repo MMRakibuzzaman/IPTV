@@ -104,6 +104,15 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     private bool _isCheckingChannels = false;
 
+    [ObservableProperty]
+    private bool _isShowingFiltered = false;
+
+    [ObservableProperty]
+    private string _toastMessage = string.Empty;
+
+    [ObservableProperty]
+    private bool _isToastVisible = false;
+
     public bool CanChangeOrientation => _platformService.CanChangeOrientation;
     public bool IsMobile => OperatingSystem.IsAndroid() || OperatingSystem.IsIOS();
     public bool IsPortraitMode => IsMobile && !IsFullscreen;
@@ -202,7 +211,11 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
         var query = SearchQuery.Trim().ToLowerInvariant();
         bool isSearching = !string.IsNullOrEmpty(query);
 
-        var grouped = _playlist.Channels
+        var sourceChannels = IsShowingFiltered && _playlist.FilteredChannels != null && _playlist.FilteredChannels.Count > 0
+            ? _playlist.FilteredChannels 
+            : _playlist.Channels;
+
+        var grouped = sourceChannels
             .GroupBy(c => string.IsNullOrEmpty(c.Group) ? "Ungrouped" : c.Group)
             .OrderBy(g => g.Key);
 
@@ -241,6 +254,38 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
         }
 
         VisibleSidebarItems = new ObservableCollection<SidebarItemViewModel>(items);
+    }
+
+    [RelayCommand]
+    public void ShowFilteredChannels()
+    {
+        if (_playlist == null) return;
+        
+        if (_playlist.FilteredChannels == null || _playlist.FilteredChannels.Count == 0)
+        {
+            _ = ShowToastAsync("Please filter first!");
+            return;
+        }
+
+        IsShowingFiltered = true;
+        UpdateVisibleItems();
+    }
+
+    [RelayCommand]
+    public void ShowOriginalChannels()
+    {
+        if (_playlist == null) return;
+
+        IsShowingFiltered = false;
+        UpdateVisibleItems();
+    }
+
+    private async Task ShowToastAsync(string message)
+    {
+        ToastMessage = message;
+        IsToastVisible = true;
+        await Task.Delay(3000);
+        IsToastVisible = false;
     }
 
     [RelayCommand]
@@ -457,7 +502,8 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
         try
         {
             var workingChannels = new List<Channel>();
-            using var httpClient = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+            using var httpClient = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+            httpClient.DefaultRequestHeaders.Add("User-Agent", "VLC/3.0.16 LibVLC/3.0.16");
 
             var semaphore = new SemaphoreSlim(10); 
             var tasks = _playlist.Channels.Select(async channel =>
@@ -486,10 +532,16 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
             var results = await Task.WhenAll(tasks);
             workingChannels = results.Where(c => c != null).Cast<Channel>().ToList();
 
-            _playlist.Channels = workingChannels;
+            _playlist.FilteredChannels = workingChannels;
             await _playlistRepository.UpdateAsync(_playlist);
             
+                                    IsShowingFiltered = true;
             UpdateVisibleItems();
+            _ = ShowToastAsync($"Found {workingChannels.Count} working channels.");
+        }
+        catch (Exception ex)
+        {
+            _ = ShowToastAsync($"Error: {ex.Message}");
         }
         finally
         {
@@ -686,6 +738,10 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
         _playerService.Stop();
     }
 }
+
+
+
+
 
 
 

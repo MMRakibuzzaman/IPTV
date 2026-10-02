@@ -13,7 +13,14 @@ using IPTV.ViewModels;
 namespace IPTV.Views;
 
 public partial class MobilePlayerView : UserControl
-{
+    {
+        private void OnFilterClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        {
+            if (sender is Avalonia.Controls.Button btn && btn.Parent?.Parent?.Parent?.Parent is Avalonia.Controls.Button parentBtn)
+            {
+                parentBtn.Flyout?.Hide();
+            }
+        }
     public MobilePlayerView()
     {
         InitializeComponent();
@@ -178,6 +185,8 @@ public partial class MobilePlayerView : UserControl
         }
     }
 }
+
+
 
 
 

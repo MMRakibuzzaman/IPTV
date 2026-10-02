@@ -6,4 +6,5 @@ public class Playlist
     public string Name { get; set; } = string.Empty;
     public string Url { get; set; } = string.Empty;
     public List<Channel> Channels { get; set; } = new();
+    public List<Channel> FilteredChannels { get; set; } = new();
 }
