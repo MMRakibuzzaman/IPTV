@@ -12,9 +12,9 @@ using IPTV.ViewModels;
 
 namespace IPTV.Views;
 
-public partial class PlayerView : UserControl
+public partial class MobilePlayerView : UserControl
 {
-    public PlayerView()
+    public MobilePlayerView()
     {
         InitializeComponent();
         Focusable = true;
@@ -199,6 +199,7 @@ public partial class PlayerView : UserControl
         }
     }
 }
+
 
 
 

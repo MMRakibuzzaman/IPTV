@@ -20,6 +20,20 @@ public class ViewLocator : IDataTemplate
             return null;
 
         var name = param.GetType().FullName!.Replace("ViewModel", "View", StringComparison.Ordinal);
+
+        // Platform-specific routing for PlayerView
+        if (name == "IPTV.Views.PlayerView")
+        {
+            if (OperatingSystem.IsAndroid() || OperatingSystem.IsIOS())
+            {
+                name = "IPTV.Views.MobilePlayerView";
+            }
+            else
+            {
+                name = "IPTV.Views.DesktopPlayerView";
+            }
+        }
+
         var type = Type.GetType(name);
 
         if (type != null)
