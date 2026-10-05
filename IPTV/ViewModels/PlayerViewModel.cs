@@ -269,6 +269,7 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
 
         IsShowingFiltered = true;
         UpdateVisibleItems();
+        _ = ShowToastAsync("Showing filtered channels");
     }
 
     [RelayCommand]
@@ -278,6 +279,7 @@ public partial class PlayerViewModel : ViewModelBase, IDisposable
 
         IsShowingFiltered = false;
         UpdateVisibleItems();
+        _ = ShowToastAsync("Showing original channels");
     }
 
     private async Task ShowToastAsync(string message)
