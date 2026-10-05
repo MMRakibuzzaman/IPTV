@@ -325,11 +325,22 @@
                                 </TextBox.InnerRightContent>
                             </TextBox>
                             <Button Grid.Column="1" Classes="player-btn" Margin="8,0,0,0" Width="36" Height="36" Padding="0"
-                                    Command="{Binding CheckChannelsCommand}" ToolTip.Tip="Filter Working Channels">
+                                    ToolTip.Tip="Channel Options">
                                 <Panel>
-                                    <TextBlock Text="↻" FontSize="16" Foreground="White" IsVisible="{Binding !IsCheckingChannels}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock Text="..." FontSize="16" Foreground="White" IsVisible="{Binding IsCheckingChannels}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <TextBlock Text="⋮" FontSize="20" FontWeight="Bold" Foreground="White" IsVisible="{Binding !IsCheckingChannels}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-4,0,0" />
+                                    <ProgressBar IsIndeterminate="True" Width="18" Height="18" Foreground="White" IsVisible="{Binding IsCheckingChannels}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                 </Panel>
+                                <Button.Flyout>
+                                    <Flyout Placement="BottomEdgeAlignedRight">
+                                        <Border Background="#161622" BorderBrush="#2E2E42" BorderThickness="1" CornerRadius="8" Padding="4" MinWidth="180">
+                                            <StackPanel Spacing="2">
+                                                <Button Classes="quality-item-btn" Command="{Binding CheckChannelsCommand}" Content="Filter Working Channels" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" />
+                                                <Button Classes="quality-item-btn" Command="{Binding ShowFilteredChannelsCommand}" Content="Show Previously Filtered" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" />
+                                                <Button Classes="quality-item-btn" Command="{Binding ShowOriginalChannelsCommand}" Content="Show Original Channels" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" />
+                                            </StackPanel>
+                                        </Border>
+                                    </Flyout>
+                                </Button.Flyout>
                             </Button>
                         </Grid>
                     </StackPanel>
@@ -377,6 +388,17 @@
                 </Grid>
             </Border>
         </Grid>
+        <!-- Toast Message Overlay -->
+        <Border HorizontalAlignment="Center"
+                VerticalAlignment="Bottom"
+                Margin="0,0,0,80"
+                Background="#CC000000"
+                CornerRadius="8"
+                Padding="16,10"
+                IsVisible="{Binding IsToastVisible}"
+                ZIndex="100">
+            <TextBlock Text="{Binding ToastMessage}" Foreground="White" FontSize="14" />
+        </Border>
     </Grid>
 </UserControl>
 
